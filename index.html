@@ -170,6 +170,15 @@
     .tpl-prix.free{background:var(--teal-lt);color:#076c60}
     .tpl-prix.paid{background:var(--gold-lt);color:#8a6510}
     .modal-actions{display:flex;gap:10px;margin-top:24px}
+    /* Statut déploiement */
+    .step-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:#fafcff;font-size:.88rem}
+    .step-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+    .step-icon.ok{background:#e3f9f0;color:#1d7a52}
+    .step-icon.pending{background:#fdf5e3;color:#a07020}
+    .step-icon.error{background:var(--rose-lt);color:var(--rose)}
+    .step-info{flex:1}
+    .step-label{font-weight:700;color:var(--navy)}
+    .step-desc{font-size:.76rem;color:var(--muted);margin-top:2px}
 
     /* TOAST */
     .toast{position:fixed;left:50%;bottom:24px;display:flex;align-items:center;justify-content:center;gap:9px;padding:13px 20px;border-radius:13px;font-size:.88rem;font-weight:700;line-height:1.45;text-align:center;box-shadow:var(--shadow-lg);z-index:999;opacity:0;transform:translate(-50%,12px);transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:none;width:min(560px,calc(100vw - 32px));background:var(--navy);color:#fff}
@@ -344,8 +353,9 @@
       <!-- ONGLET 0 : IDENTITÉ -->
       <div class="tab-panel active" id="tab0">
         <div class="card">
-          <div class="card-head"><div class="card-title">👤 Identité du client</div></div>
+          <div class="card-head"><div class="card-title" id="formCardTitle">👤 Identité du client</div></div>
           <div class="card-body">
+            <input type="hidden" id="f_id">
             <div class="form-grid">
               <div class="form-group"><label>Prénom *</label><div class="input-wrap"><span class="input-icon">👤</span><input id="f_prenom" placeholder="Vincent"></div></div>
               <div class="form-group"><label>Nom *</label><div class="input-wrap"><span class="input-icon">👤</span><input id="f_nom" placeholder="Dupont"></div></div>
@@ -551,7 +561,7 @@
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn btn-teal" onclick="enregistrerClient()">✅ Enregistrer le client</button>
+          <button class="btn btn-teal" id="btnEnregistrer" onclick="enregistrerClient()">✅ Enregistrer le client</button>
           <button class="btn btn-ghost" onclick="changerOnglet(7)">← Retour</button>
           <button class="btn" style="background:#f0f4f8;color:var(--muted);" onclick="resetForm()">🗑 Effacer tout</button>
         </div>
@@ -751,6 +761,23 @@
   </div>
 </div>
 
+<!-- MODAL STATUT DÉPLOIEMENT -->
+<div class="modal-overlay" id="modalStatut">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd">
+      <div class="modal-title">📊 Statut du déploiement</div>
+      <button class="modal-close" onclick="fermerModalStatut()">✕</button>
+    </div>
+    <div id="statutClientInfo" style="margin-bottom:16px;padding:12px 14px;background:var(--bg);border-radius:10px;font-size:.88rem;color:var(--text)"></div>
+    <div id="statutSteps" style="display:grid;gap:10px"></div>
+    <div id="statutLoading" style="text-align:center;padding:30px;color:var(--muted);font-size:.9rem">Chargement...</div>
+    <div class="modal-actions" style="margin-top:20px">
+      <a id="statutLienPub" class="btn btn-teal" href="#" target="_blank" rel="noopener" style="display:none">🔗 Voir le portfolio</a>
+      <button class="btn btn-ghost" onclick="fermerModalStatut()">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
 
@@ -935,7 +962,9 @@
           ${deployBtn}
           <button class="btn btn-gold btn-sm" onclick="ouvrirModalTemplate('${c.id}')">🎨 Design</button>
           ${c.statut==='en_ligne'?`<button class="btn btn-sm btn-ghost" onclick="mettreAJour('${c.id}',this)">🔄 Màj</button>`:''}
+          <button class="btn btn-sm" style="background:#e8f3fc;color:var(--blue);border:1px solid #c5d9ef" onclick="editerClient('${c.id}')">✏️ Modifier</button>
           <button class="btn btn-sm" style="background:#f0faf4;color:#1d6f42;border:1px solid #c3dfc8" onclick="exporterClientExcel('${c.id}')">📊 Excel</button>
+          <button class="btn btn-sm" style="background:#f5f0fc;color:#6d3eaa;border:1px solid #d4c3ef" onclick="voirStatutDeploiement('${c.id}')">📡 Statut</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -974,6 +1003,7 @@
     })).filter(c => c.titre);
 
     return {
+      id:         g('f_id') || undefined,
       prenom:     g('f_prenom'), nom: g('f_nom'), email: g('f_email'),
       telephone:  g('f_tel'), profession: g('f_profession'), photo_url: g('f_photo'),
       template_id: g('f_template'), domaine: g('f_domaine'), abonnement: g('f_abonnement'), duree_mois: g('f_duree') || '12',
@@ -1037,11 +1067,119 @@
     toast('Enregistrement...', 'info');
     const r = await api('sauvegarderClient', data);
     if (r && r.success) {
-      toast('Client enregistré ! Sous-domaine : '+r.sousdomaine, 'success');
+      const msg = data.id ? 'Client modifié !' : 'Client enregistré ! Sous-domaine : ' + (r.sousdomaine || '');
+      toast(msg, 'success');
       resetForm(); chargerClients(); afficherVue('dashboard');
     } else {
       toast('Erreur : '+(r && r.error ? r.error : 'réponse vide'), 'error');
     }
+  }
+
+  // ── Éditer un client existant ──
+  function editerClient(id) {
+    const c = allClients.find(cl => cl.id === id);
+    if (!c) { toast('Client introuvable', 'error'); return; }
+    // Remplir le formulaire avec les données du client
+    remplirFormulaire({
+      prenom:      c.prenom,
+      nom:         c.nom,
+      email:       c.email,
+      telephone:   c.telephone,
+      profession:  c.profession,
+      photo_url:   c.photo_url,
+      domaine:     (c.sous_domaine||'').split('.').slice(1).join('.') || 'sotchedji.store',
+      abonnement:  c.type_abonnement,
+      template_id: c.template_id,
+      duree_mois:  '12',
+      profil:      c.profil || {}
+    });
+    // Mettre l'ID dans le champ caché
+    const fidEl = document.getElementById('f_id');
+    if (fidEl) fidEl.value = id;
+    // Changer le titre du formulaire
+    const titleEl = document.getElementById('formCardTitle');
+    if (titleEl) titleEl.textContent = '✏️ Modifier — ' + c.prenom + ' ' + c.nom;
+    const btnEl = document.getElementById('btnEnregistrer');
+    if (btnEl) btnEl.textContent = '💾 Sauvegarder les modifications';
+    // Afficher la vue formulaire
+    afficherVue('form'); changerOnglet(0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Formulaire chargé — modifie puis clique Sauvegarder', 'info', '✏️');
+  }
+
+  // ── Voir statut déploiement ──
+  async function voirStatutDeploiement(id) {
+    const c = allClients.find(cl => cl.id === id);
+    if (!c) return;
+    // Afficher le modal
+    const overlay = document.getElementById('modalStatut');
+    overlay.classList.add('open');
+    document.getElementById('statutLoading').style.display = 'block';
+    document.getElementById('statutSteps').style.display = 'none';
+    document.getElementById('statutLienPub').style.display = 'none';
+    document.getElementById('statutClientInfo').innerHTML =
+      `<strong>${c.prenom} ${c.nom}</strong> — <span style="color:var(--muted)">${c.sous_domaine || '—'}</span>`;
+
+    const r = await api('getDeploymentStatus', { id });
+    document.getElementById('statutLoading').style.display = 'none';
+
+    if (!r || r.error) {
+      document.getElementById('statutSteps').style.display = 'grid';
+      document.getElementById('statutSteps').innerHTML =
+        `<div class="step-row"><div class="step-icon error">✕</div><div class="step-info"><div class="step-label">Erreur API</div><div class="step-desc">${r ? r.error : 'Réponse vide'}</div></div></div>`;
+      return;
+    }
+
+    const steps = [
+      {
+        label: 'Repo GitHub créé',
+        ok: r.repo_exists,
+        desc_ok:  `github.com/sdgpro25-lab/${c.repo_github}`,
+        desc_no:  'Le repo n\'a pas encore été créé. Clique sur 🚀 Déployer.',
+      },
+      {
+        label: 'GitHub Pages activé',
+        ok: r.pages_enabled,
+        desc_ok:  `Publié sur ${r.pages_url || 'GitHub Pages'}`,
+        desc_no:  'Pages non activé. Le déploiement résoudra ça.',
+      },
+      {
+        label: 'Domaine personnalisé (DNS)',
+        ok: r.cname_set,
+        desc_ok:  `CNAME → sdgpro25-lab.github.io`,
+        desc_no:  'Domaine custom non configuré sur GitHub Pages.',
+      },
+      {
+        label: 'Certificat SSL actif',
+        ok: r.ssl_active,
+        desc_ok:  `HTTPS activé sur ${c.sous_domaine}`,
+        desc_no:  'SSL pas encore actif. Attend 30–60 min après le DNS.',
+      },
+    ];
+
+    document.getElementById('statutSteps').style.display = 'grid';
+    document.getElementById('statutSteps').innerHTML = steps.map(s => {
+      const cls  = s.ok ? 'ok' : 'pending';
+      const icon = s.ok ? '✓' : '⏳';
+      const desc = s.ok ? s.desc_ok : s.desc_no;
+      return `<div class="step-row">
+        <div class="step-icon ${cls}">${icon}</div>
+        <div class="step-info">
+          <div class="step-label">${s.label}</div>
+          <div class="step-desc">${desc}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    if (r.ssl_active && c.sous_domaine) {
+      const lien = document.getElementById('statutLienPub');
+      lien.href = 'https://' + c.sous_domaine;
+      lien.style.display = 'flex';
+    }
+  }
+
+  function fermerModalStatut() {
+    document.getElementById('modalStatut').classList.remove('open');
   }
 
   // ── Déployer ──
@@ -1160,7 +1298,7 @@
   }
 
   function resetForm() {
-    ['f_prenom','f_nom','f_email','f_tel','f_profession','f_photo',
+    ['f_id','f_prenom','f_nom','f_email','f_tel','f_profession','f_photo',
      'h_eyebrow','h_sous_titre','h_lead','s1_val','s1_desc','s2_val','s2_desc','s3_val','s3_desc',
      'ap_titre','ap_intro','ap_p1','ap_p2','ap_p3',
      'ap1t','ap1d','ap2t','ap2d','ap3t','ap3d','v1t','v1d','v2t','v2d','v3t','v3d',
@@ -1172,6 +1310,11 @@
     });
     // Remettre tous les toggles à ON
     document.querySelectorAll('[id^="vis_"]').forEach(el => el.checked = true);
+    // Réinitialiser le titre du formulaire
+    const titleEl = document.getElementById('formCardTitle');
+    if (titleEl) titleEl.textContent = '👤 Identité du client';
+    const btnEl = document.getElementById('btnEnregistrer');
+    if (btnEl) btnEl.textContent = '✅ Enregistrer le client';
     changerOnglet(0);
   }
 
