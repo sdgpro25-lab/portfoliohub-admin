@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PortfolioHub Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- SheetJS chargé dynamiquement uniquement pour les fonctions Excel -->
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --navy:#0f2d4a;--blue:#2176ae;--blue-lt:#e8f3fc;--teal:#0d9e8e;--teal-lt:#e3f7f5;
+      --gold:#c89b3c;--gold-lt:#fdf5e3;--rose:#e05260;--rose-lt:#fdedef;
+      --bg:#f3f7fc;--surface:#fff;--border:#e2ecf5;--text:#0f2d4a;--muted:#6b829a;
+      --radius:14px;--radius-lg:20px;
+      --shadow-sm:0 2px 8px rgba(15,45,74,.06);--shadow:0 4px 24px rgba(15,45,74,.10);--shadow-lg:0 12px 48px rgba(15,45,74,.14);
+      --t:.22s cubic-bezier(.4,0,.2,1);
+    }
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;font-size:15px}
+
+    /* SIDEBAR */
+    .sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--navy);display:flex;flex-direction:column;z-index:50;box-shadow:4px 0 24px rgba(15,45,74,.18)}
+    .sb-logo{padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sb-logo-mark{display:flex;align-items:center;gap:10px}
+    .logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 4px 12px rgba(13,158,142,.35)}
+    .logo-txt{font-size:.95rem;font-weight:800;color:#fff}.logo-txt span{color:#7dd3f8}
+    .sb-sub{font-size:.65rem;color:rgba(255,255,255,.3);margin-top:3px;letter-spacing:1px;text-transform:uppercase}
+    .sb-nav{padding:16px 10px;flex:1;overflow-y:auto}
+    .sb-label{font-size:.63rem;font-weight:800;color:rgba(255,255,255,.28);letter-spacing:1.5px;text-transform:uppercase;padding:12px 12px 6px}
+    .sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:rgba(255,255,255,.55);font-size:.85rem;font-weight:600;cursor:pointer;transition:var(--t);margin-bottom:1px}
+    .sb-item:hover{background:rgba(255,255,255,.08);color:#fff}
+    .sb-item.active{background:linear-gradient(135deg,rgba(33,118,174,.5),rgba(13,158,142,.4));color:#fff}
+    .sb-item .ic{font-size:.95rem;width:18px;text-align:center}
+    .sb-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.07);font-size:.72rem;color:rgba(255,255,255,.22)}
+
+    /* MAIN */
+    .main{margin-left:240px;min-height:100vh;display:flex;flex-direction:column}
+
+    /* TOPBAR */
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;box-shadow:var(--shadow-sm)}
+    .tb-left h2{font-size:1rem;font-weight:800;color:var(--navy)}
+    .tb-left p{font-size:.75rem;color:var(--muted);margin-top:1px}
+    .tb-right{display:flex;align-items:center;gap:12px}
+    .tb-date{font-size:.78rem;color:var(--muted);background:var(--bg);padding:5px 12px;border-radius:20px;border:1px solid var(--border)}
+    .avatar-admin{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:800}
+
+    /* CONTENT */
+    .content{padding:28px 32px;flex:1}
+
+    /* STATS */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+    .stat-card{background:var(--surface);border-radius:var(--radius-lg);padding:20px 22px;box-shadow:var(--shadow-sm);border:1px solid var(--border);display:flex;align-items:center;gap:16px;transition:var(--t);position:relative;overflow:hidden}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+    .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+    .stat-card.blue::before{background:linear-gradient(90deg,var(--blue),#5ba3d4)}
+    .stat-card.teal::before{background:linear-gradient(90deg,var(--teal),#34d399)}
+    .stat-card.gold::before{background:linear-gradient(90deg,var(--gold),#f5c842)}
+    .stat-card.rose::before{background:linear-gradient(90deg,var(--rose),#f87171)}
+    .stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+    .stat-card.blue .stat-icon{background:var(--blue-lt)}.stat-card.teal .stat-icon{background:var(--teal-lt)}.stat-card.gold .stat-icon{background:var(--gold-lt)}.stat-card.rose .stat-icon{background:var(--rose-lt)}
+    .stat-num{font-size:1.8rem;font-weight:800;line-height:1;letter-spacing:-.5px}
+    .stat-card.blue .stat-num{color:var(--blue)}.stat-card.teal .stat-num{color:var(--teal)}.stat-card.gold .stat-num{color:var(--gold)}.stat-card.rose .stat-num{color:var(--rose)}
+    .stat-label{font-size:.72rem;color:var(--muted);font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+
+    /* TABS */
+    .tabs-wrap{display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:24px;flex-wrap:wrap}
+    .tab-btn{padding:8px 16px;border:none;background:none;border-radius:9px;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:var(--t);font-family:inherit;white-space:nowrap}
+    .tab-btn:hover{color:var(--navy);background:rgba(255,255,255,.7)}
+    .tab-btn.active{background:var(--surface);color:var(--blue);box-shadow:var(--shadow-sm)}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+
+    /* CARD */
+    .card{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);border:1px solid var(--border);margin-bottom:20px;overflow:hidden}
+    .card-head{padding:18px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .card-title{font-size:.92rem;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
+    .card-body{padding:22px 24px}
+    .card-sub{font-size:.78rem;color:var(--muted);margin-bottom:18px;line-height:1.5}
+
+    /* FORM */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group.full{grid-column:1/-1}
+    .form-group.third{grid-column:span 1}
+    label{font-size:.73rem;font-weight:800;color:var(--navy);letter-spacing:.3px;text-transform:uppercase}
+    .input-wrap{position:relative}
+    .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:.88rem;pointer-events:none;line-height:1}
+    input,select,textarea{width:100%;padding:10px 13px 10px 36px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:.87rem;font-family:inherit;color:var(--text);background:#fafcff;transition:var(--t);outline:none;-webkit-appearance:none}
+    input.ni,select.ni,textarea.ni{padding-left:13px}
+    input:focus,select:focus,textarea:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(33,118,174,.12)}
+    input::placeholder,textarea::placeholder{color:#b8c8d8}
+    textarea{resize:vertical;min-height:82px;padding-top:11px;line-height:1.6}
+    select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b829a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+    .form-section-label{grid-column:1/-1;font-size:.65rem;font-weight:800;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid var(--border);margin-top:4px}
+    .form-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;align-items:center}
+
+    /* DYNAMIC LIST */
+    .dynamic-list{display:grid;gap:12px;margin-bottom:14px}
+    .dyn-item{border:1.5px solid var(--border);border-radius:12px;padding:16px;position:relative;background:#fafcff}
+    .dyn-item-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .dyn-item-num{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .dyn-remove{width:26px;height:26px;border-radius:6px;border:none;background:var(--rose-lt);color:var(--rose);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;font-weight:800;transition:var(--t)}
+    .dyn-remove:hover{background:var(--rose);color:#fff}
+    .add-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--muted);font-size:.83rem;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--t);width:100%;justify-content:center}
+    .add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border:none;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:700;font-family:inherit;transition:var(--t);white-space:nowrap;letter-spacing:.2px}
+    .btn:active{transform:scale(.97)}
+    .btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
+    .btn-primary{background:linear-gradient(135deg,var(--blue),#1a7bbf);color:#fff;box-shadow:0 4px 14px rgba(33,118,174,.35)}
+    .btn-primary:hover{box-shadow:0 6px 20px rgba(33,118,174,.45);transform:translateY(-1px)}
+    .btn-teal{background:linear-gradient(135deg,var(--teal),#11b9a7);color:#fff;box-shadow:0 4px 14px rgba(13,158,142,.35)}
+    .btn-teal:hover{box-shadow:0 6px 20px rgba(13,158,142,.45);transform:translateY(-1px)}
+    .btn-gold{background:linear-gradient(135deg,var(--gold),#dab84a);color:#fff;box-shadow:0 4px 14px rgba(200,155,60,.35)}
+    .btn-gold:hover{box-shadow:0 6px 20px rgba(200,155,60,.45);transform:translateY(-1px)}
+    .btn-ghost{background:var(--blue-lt);color:var(--blue);box-shadow:none;border:1.5px solid var(--border)}
+    .btn-ghost:hover{background:#d0e8f5}
+    .btn-sm{padding:6px 13px;font-size:.78rem;border-radius:8px}
+
+    /* TABLE */
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:.84rem}
+    thead tr{border-bottom:2px solid var(--border)}
+    th{padding:11px 14px;text-align:left;font-size:.67rem;font-weight:800;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+    tbody tr{border-bottom:1px solid #f0f5fa;transition:var(--t)}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:#f8fbff}
+    td{padding:13px 14px;vertical-align:middle}
+    .client-cell{display:flex;align-items:center;gap:11px}
+    .client-av{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:.82rem;font-weight:800;flex-shrink:0;text-transform:uppercase}
+    .client-name{font-weight:700;font-size:.86rem;color:var(--navy)}
+    .client-email{font-size:.73rem;color:var(--muted);margin-top:1px}
+    .links-cell{display:flex;flex-direction:column;gap:5px}
+    .lien-pub,.lien-gh{text-decoration:none;font-weight:600;font-size:.78rem;display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:6px;transition:var(--t);white-space:nowrap}
+    .lien-pub{color:var(--blue);background:var(--blue-lt)}.lien-pub:hover{background:#d0e8f5}
+    .lien-gh{color:#5a3d8a;background:#f0ebff}.lien-gh:hover{background:#e2d8fc}
+    .lien-attente{color:var(--muted);font-size:.77rem;font-style:italic}
+    .td-link .no-url{color:var(--muted);font-size:.78rem;font-style:italic}
+    .td-actions{display:flex;gap:7px;flex-wrap:wrap}
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:.71rem;font-weight:700}
+    .badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+    .badge-online{background:var(--teal-lt);color:#076c60}.badge-online::before{background:var(--teal)}
+    .badge-pending{background:var(--gold-lt);color:#8a6510}.badge-pending::before{background:var(--gold)}
+    .tpl-badge{display:inline-block;padding:3px 9px;border-radius:6px;background:var(--blue-lt);color:var(--blue);font-size:.73rem;font-weight:700}
+
+    /* MODAL */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,25,45,.45);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px}
+    .modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal{background:var(--surface);border-radius:22px;padding:32px;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp .25s cubic-bezier(.4,0,.2,1)}
+    @keyframes slideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .modal-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+    .modal-title{font-size:1.1rem;font-weight:800;color:var(--navy)}
+    .modal-close{width:28px;height:28px;border-radius:7px;border:none;background:var(--bg);color:var(--muted);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:var(--t)}
+    .modal-close:hover{background:var(--border);color:var(--navy)}
+    .modal-sub{font-size:.81rem;color:var(--muted);margin-bottom:22px;line-height:1.6}
+    .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px}
+    .tpl-card{border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:var(--t);position:relative;overflow:hidden}
+    .tpl-card:hover{border-color:var(--blue);box-shadow:0 4px 16px rgba(33,118,174,.15);transform:translateY(-2px)}
+    .tpl-card.selected{border-color:var(--teal);background:linear-gradient(135deg,#f0fbfa,#e8f8f7);box-shadow:0 4px 16px rgba(13,158,142,.2)}
+    .tpl-card.selected::after{content:'✓';position:absolute;top:8px;right:8px;width:18px;height:18px;background:var(--teal);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800}
+    .tpl-thumb{width:100%;height:56px;border-radius:7px;margin-bottom:10px}
+    .tpl-t1{background:linear-gradient(135deg,#e8f3fc,#d0e8f5);border:1px solid #c8dff0}
+    .tpl-t2{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:1px solid #c7d2fe}
+    .tpl-t3{background:linear-gradient(135deg,#fdf8f3,#fef3c7);border:1px solid #fde68a}
+    .tpl-name{font-weight:800;font-size:.86rem;color:var(--navy);margin-bottom:3px}
+    .tpl-desc{font-size:.73rem;color:var(--muted);line-height:1.5}
+    .tpl-prix{margin-top:8px;font-size:.7rem;font-weight:700;display:inline-block;padding:2px 8px;border-radius:6px}
+    .tpl-prix.free{background:var(--teal-lt);color:#076c60}
+    .tpl-prix.paid{background:var(--gold-lt);color:#8a6510}
+    .modal-actions{display:flex;gap:10px;margin-top:24px}
+
+    /* TOAST */
+    .toast{position:fixed;left:50%;bottom:24px;display:flex;align-items:center;justify-content:center;gap:9px;padding:13px 20px;border-radius:13px;font-size:.88rem;font-weight:700;line-height:1.45;text-align:center;box-shadow:var(--shadow-lg);z-index:999;opacity:0;transform:translate(-50%,12px);transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:none;width:min(560px,calc(100vw - 32px));background:var(--navy);color:#fff}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .toast.success{background:linear-gradient(135deg,#064e3b,#065f46)}
+    .toast.error{background:linear-gradient(135deg,#7f1d1d,#991b1b)}
+    .toast.info{background:linear-gradient(135deg,#1e3a5f,var(--blue))}
+
+    /* TOGGLES VISIBILITÉ */
+    .vis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:4px}
+    .vis-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:#fafcff;transition:var(--t)}
+    .vis-item:hover{border-color:var(--blue);background:#f4f9ff}
+    .vis-label{font-size:.8rem;font-weight:700;color:var(--navy)}
+    .vis-sub{font-size:.7rem;color:var(--muted);margin-top:1px}
+    .toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;inset:0;background:#d0dde8;border-radius:99px;cursor:pointer;transition:var(--t)}
+    .toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:var(--t);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .toggle input:checked + .toggle-slider{background:var(--teal)}
+    .toggle input:checked + .toggle-slider::before{transform:translateX(18px)}
+    /* IMPORT MODAL */
+    .import-modal{max-width:740px}
+    .import-tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:4px;flex-wrap:wrap}
+    .import-tab{flex:1;min-width:120px;padding:7px 10px;border:none;background:none;border-radius:7px;font-size:.78rem;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;transition:var(--t);white-space:nowrap;text-align:center}
+    .import-tab.active{background:var(--surface);color:var(--blue);box-shadow:var(--shadow-sm)}
+    .import-tab.excel-tab.active{color:#1d6f42}
+    .import-panel{display:none}.import-panel.active{display:block}
+    .json-box{width:100%;min-height:280px;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.6;color:var(--text);background:#fafcff;resize:vertical;outline:none;transition:var(--t)}
+    .json-box:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(33,118,174,.1)}
+    .tpl-info{padding:12px 16px;background:var(--gold-lt);border:1px solid #f0d98a;border-radius:10px;font-size:.8rem;color:#7a5c10;line-height:1.6;margin-bottom:14px}
+    .tpl-info.green{background:#f0faf4;border-color:#a8d9b8;color:#1a5c30}
+    .copy-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--t)}
+    .copy-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+    .copy-btn.excel{border-color:#c3dfc8}.copy-btn.excel:hover{border-color:#1d6f42;color:#1d6f42;background:#f0faf4}
+    .file-drop{border:2px dashed var(--border);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:var(--t);background:#fafcff;position:relative}
+    .file-drop:hover,.file-drop.drag{border-color:var(--teal);background:var(--teal-lt)}
+    .file-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .file-drop-icon{font-size:2rem;margin-bottom:8px}
+    .file-drop-txt{font-size:.85rem;font-weight:700;color:var(--navy)}
+    .file-drop-sub{font-size:.75rem;color:var(--muted);margin-top:4px}
+    .file-chosen{display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--teal-lt);border:1px solid #a7ede8;border-radius:8px;font-size:.82rem;color:#065f50;margin-top:10px}
+    .file-chosen.show{display:flex}
+    /* VIS HINT */
+    .vis-hint{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--teal-lt);border:1px solid #a7ede8;border-radius:8px;font-size:.78rem;color:#065f50;margin-bottom:16px}
+    /* SPINNER */
+    .spinner{display:inline-block;width:14px;height:14px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* TEMPLATE CARDS */
+    .tpl-edit-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;transition:var(--t);box-shadow:var(--shadow-sm)}
+    .tpl-edit-card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+    .tpl-preview-band{height:64px;border-radius:0;position:relative;display:flex;align-items:center;justify-content:center;gap:6px}
+    .tpl-swatch{width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(255,255,255,.5);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+    .tpl-edit-body{padding:16px 18px}
+    .tpl-edit-name{font-size:.95rem;font-weight:800;color:var(--navy);margin-bottom:3px}
+    .tpl-edit-desc{font-size:.77rem;color:var(--muted);line-height:1.5;margin-bottom:12px}
+    .tpl-edit-actions{display:flex;gap:8px;flex-wrap:wrap}
+    /* DATE BADGES */
+    .date-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:.7rem;font-weight:700;white-space:nowrap}
+    .date-badge.ok{background:var(--teal-lt);color:#076c60}
+    .date-badge.warn{background:var(--gold-lt);color:#8a6510}
+    .date-badge.expired{background:var(--rose-lt);color:#9b1e25}
+    /* COLOR SWATCH */
+    .color-swatch{display:flex;flex-direction:column;align-items:center;gap:4px}
+    .color-swatch-dot{width:32px;height:32px;border-radius:8px;border:1.5px solid rgba(0,0,0,.08);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+    .color-swatch-label{font-size:.63rem;color:var(--muted);font-weight:700;text-align:center;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* EMPTY */
+    .empty-state{text-align:center;padding:50px 20px}
+    .empty-icon{font-size:2.8rem;margin-bottom:14px;opacity:.35}
+    .empty-state p{color:var(--muted);font-size:.88rem}
+
+    @media(max-width:900px){.sidebar{display:none}.main{margin-left:0}.content{padding:16px}.form-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-mark">
+      <div class="logo-icon">🚀</div>
+      <div>
+        <div class="logo-txt">Portfolio<span>Hub</span></div>
+        <div class="sb-sub">Admin Panel</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-label">Vues</div>
+    <div class="sb-item active" onclick="afficherVue('dashboard')"><span class="ic">📊</span>Tableau de bord</div>
+    <div class="sb-item" onclick="afficherVue('clients')"><span class="ic">👥</span>Clients</div>
+    <div class="sb-item" onclick="afficherVue('form')"><span class="ic">✨</span>Nouveau client</div>
+    <div class="sb-label">Outils</div>
+    <div class="sb-item" onclick="afficherVue('templates')"><span class="ic">🎨</span>Templates</div>
+  </nav>
+  <div class="sb-foot">v2.0 · sdgpro25-lab</div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div class="tb-left">
+      <h2 id="pageTitle">Tableau de bord</h2>
+      <p id="topDate">—</p>
+    </div>
+    <div class="tb-right">
+      <div class="tb-date" id="topTime">—</div>
+      <button class="btn btn-gold btn-sm" onclick="ouvrirImport()">📥 Importer</button>
+      <button class="btn btn-primary btn-sm" onclick="chargerClients()">🔄 Actualiser</button>
+      <div class="avatar-admin">GS</div>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- ═══ VUE DASHBOARD ═══ -->
+    <div id="vue-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon">👥</div><div><div class="stat-num" id="statTotal">—</div><div class="stat-label">Clients</div></div></div>
+        <div class="stat-card teal"><div class="stat-icon">🌐</div><div><div class="stat-num" id="statOnline">—</div><div class="stat-label">En ligne</div></div></div>
+        <div class="stat-card gold"><div class="stat-icon">⏳</div><div><div class="stat-num" id="statPending">—</div><div class="stat-label">En attente</div></div></div>
+        <div class="stat-card rose"><div class="stat-icon">🎨</div><div><div class="stat-num" id="statTemplates">—</div><div class="stat-label">Templates</div></div></div>
+      </div>
+
+      <!-- Tableau clients inline -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">👥 Derniers clients <span id="clientCount" style="font-size:.73rem;color:var(--muted);font-weight:600;margin-left:4px;"></span></div>
+          <button class="btn btn-primary btn-sm" onclick="afficherVue('form')">+ Nouveau</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Client</th><th>Profession</th><th>Template</th><th>Lien</th><th>Statut & Abonnement</th><th>Actions</th></tr></thead>
+            <tbody id="tableClients"><tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><p>Chargement...</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VUE CLIENTS ═══ -->
+    <div id="vue-clients" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">👥 Tous les clients</div>
+          <button class="btn btn-primary btn-sm" onclick="afficherVue('form')">+ Nouveau client</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Client</th><th>Profession</th><th>Template</th><th>Lien public</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="tableClients2"><tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><p>Chargement...</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VUE FORMULAIRE ═══ -->
+    <div id="vue-form" style="display:none">
+
+      <!-- ONGLETS -->
+      <div class="tabs-wrap" id="formTabs">
+        <button class="tab-btn active" onclick="changerOnglet(0)">👤 Identité</button>
+        <button class="tab-btn" onclick="changerOnglet(1)">🎯 Hero</button>
+        <button class="tab-btn" onclick="changerOnglet(2)">📝 À propos</button>
+        <button class="tab-btn" onclick="changerOnglet(3)">⚡ Compétences</button>
+        <button class="tab-btn" onclick="changerOnglet(4)">💼 Expériences</button>
+        <button class="tab-btn" onclick="changerOnglet(5)">🚀 Projets</button>
+        <button class="tab-btn" onclick="changerOnglet(6)">🎓 Certif & Langues</button>
+        <button class="tab-btn" onclick="changerOnglet(7)">📡 Contact</button>
+        <button class="tab-btn" onclick="changerOnglet(8)">⚙️ Publication</button>
+      </div>
+
+      <!-- ONGLET 0 : IDENTITÉ -->
+      <div class="tab-panel active" id="tab0">
+        <div class="card">
+          <div class="card-head"><div class="card-title">👤 Identité du client</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>Prénom *</label><div class="input-wrap"><span class="input-icon">👤</span><input id="f_prenom" placeholder="Vincent"></div></div>
+              <div class="form-group"><label>Nom *</label><div class="input-wrap"><span class="input-icon">👤</span><input id="f_nom" placeholder="Dupont"></div></div>
+              <div class="form-group"><label>Email</label><div class="input-wrap"><span class="input-icon">📧</span><input id="f_email" type="email" placeholder="vincent@email.com"></div></div>
+              <div class="form-group"><label>Téléphone</label><div class="input-wrap"><span class="input-icon">📞</span><input id="f_tel" placeholder="+229 01 23 45 67"></div></div>
+              <div class="form-group full"><label>Profession / Titre principal *</label><div class="input-wrap"><span class="input-icon">💼</span><input id="f_profession" placeholder="Ex: Architecte · Entrepreneur · Développeur web"></div></div>
+              <div class="form-group full"><label>URL de la photo de profil</label><div class="input-wrap"><span class="input-icon">🖼️</span><input id="f_photo" placeholder="https://... (laisser vide pour avatar automatique)"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-primary" onclick="changerOnglet(1)">Suivant → Hero</button></div>
+      </div>
+
+      <!-- ONGLET 1 : HERO -->
+      <div class="tab-panel" id="tab1">
+        <div class="card">
+          <div class="card-head"><div class="card-title">🎯 Section Hero (première impression)</div></div>
+          <div class="card-body">
+            <p class="card-sub">Ce que le visiteur voit en premier. Le tagline est le petit texte en haut. Le sous-titre renforce la profession. Le lead est la description courte.</p>
+            <div class="form-grid">
+              <div class="form-group full"><label>Tagline / Eyebrow (petit texte animé)</label><div class="input-wrap"><span class="input-icon">✨</span><input id="h_eyebrow" placeholder="Ex: Applications web, logiciels desktop, réseaux informatiques et IA"></div></div>
+              <div class="form-group full"><label>Sous-titre de profession</label><div class="input-wrap"><span class="input-icon">📌</span><input id="h_sous_titre" placeholder="Ex: Développeur web & desktop • Consultant IT • Spécialiste réseaux"></div></div>
+              <div class="form-group full"><label>Lead / Description courte</label><textarea id="h_lead" class="ni" placeholder="2-3 phrases résumant l'activité et la valeur ajoutée du client..."></textarea></div>
+              <div class="form-section-label">📊 Statistiques flottantes (cartes autour de la photo)</div>
+              <div class="form-group"><label>Stat 1 — Valeur</label><input id="s1_val" class="ni" placeholder="Ex: 8 ans · 20+ · NSI Pro"></div>
+              <div class="form-group"><label>Stat 1 — Description</label><input id="s1_desc" class="ni" placeholder="Ex: d'expérience en développement"></div>
+              <div class="form-group"><label>Stat 2 — Valeur</label><input id="s2_val" class="ni" placeholder="Ex: 50+"></div>
+              <div class="form-group"><label>Stat 2 — Description</label><input id="s2_desc" class="ni" placeholder="Ex: projets livrés"></div>
+              <div class="form-group"><label>Stat 3 — Valeur</label><input id="s3_val" class="ni" placeholder="Ex: Mon Entreprise"></div>
+              <div class="form-group"><label>Stat 3 — Description</label><input id="s3_desc" class="ni" placeholder="Ex: fondateur de ..."></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-ghost" onclick="changerOnglet(0)">← Retour</button><button class="btn btn-primary" onclick="changerOnglet(2)">Suivant → À propos</button></div>
+      </div>
+
+      <!-- ONGLET 2 : À PROPOS -->
+      <div class="tab-panel" id="tab2">
+        <div class="card">
+          <div class="card-head"><div class="card-title">📝 Section À propos</div></div>
+          <div class="card-body">
+            <p class="card-sub">Titre de la section, texte biographique en 3 paragraphes, 3 points "ce que j'apporte" et 3 "cartes de valeur" à droite.</p>
+            <div class="form-grid">
+              <div class="form-group full"><label>Titre de la section à propos</label><input id="ap_titre" class="ni" placeholder="Ex: Coordonnateur de projets, développeur, consultant IT et spécialiste IA orienté terrain."></div>
+              <div class="form-group full"><label>Intro (petite phrase à droite du titre)</label><input id="ap_intro" class="ni" placeholder="Ex: Une expertise construite autour d'applications web, de logiciels desktop..."></div>
+              <div class="form-group full"><label>Paragraphe 1</label><textarea id="ap_p1" class="ni" placeholder="Premier paragraphe de la biographie..."></textarea></div>
+              <div class="form-group full"><label>Paragraphe 2</label><textarea id="ap_p2" class="ni" placeholder="Deuxième paragraphe..."></textarea></div>
+              <div class="form-group full"><label>Paragraphe 3</label><textarea id="ap_p3" class="ni" placeholder="Troisième paragraphe (optionnel)..."></textarea></div>
+              <div class="form-section-label">💡 Ce que j'apporte (3 points)</div>
+              <div class="form-group"><label>Apport 1 — Titre</label><input id="ap1t" class="ni" placeholder="Ex: Solutions métier"></div>
+              <div class="form-group"><label>Apport 1 — Description</label><input id="ap1d" class="ni" placeholder="Ex: Applications web, logiciels..."></div>
+              <div class="form-group"><label>Apport 2 — Titre</label><input id="ap2t" class="ni" placeholder="Ex: Accompagnement terrain"></div>
+              <div class="form-group"><label>Apport 2 — Description</label><input id="ap2d" class="ni" placeholder="Ex: Formation, maintenance..."></div>
+              <div class="form-group"><label>Apport 3 — Titre</label><input id="ap3t" class="ni" placeholder="Ex: IA pratique"></div>
+              <div class="form-group"><label>Apport 3 — Description</label><input id="ap3d" class="ni" placeholder="Ex: Accompagnement à l'usage de l'IA..."></div>
+              <div class="form-section-label">🏆 Cartes de valeur (colonne droite)</div>
+              <div class="form-group"><label>Value 1 — Titre</label><input id="v1t" class="ni" placeholder="Ex: Coordonnateur projets"></div>
+              <div class="form-group"><label>Value 1 — Description</label><input id="v1d" class="ni" placeholder="Ex: DCH3 Consulting Group..."></div>
+              <div class="form-group"><label>Value 2 — Titre</label><input id="v2t" class="ni" placeholder="Ex: IA + Productivité"></div>
+              <div class="form-group"><label>Value 2 — Description</label><input id="v2d" class="ni" placeholder="Ex: Accompagnement IA..."></div>
+              <div class="form-group"><label>Value 3 — Titre</label><input id="v3t" class="ni" placeholder="Ex: Réseaux informatiques"></div>
+              <div class="form-group"><label>Value 3 — Description</label><input id="v3d" class="ni" placeholder="Ex: Maintenance, serveurs..."></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-ghost" onclick="changerOnglet(1)">← Retour</button><button class="btn btn-primary" onclick="changerOnglet(3)">Suivant → Compétences</button></div>
+      </div>
+
+      <!-- ONGLET 3 : COMPÉTENCES -->
+      <div class="tab-panel" id="tab3">
+        <div class="card">
+          <div class="card-head"><div class="card-title">⚡ Compétences</div></div>
+          <div class="card-body">
+            <div class="vis-hint">👁️ Tu peux <strong>masquer toute cette section</strong> sur la page publique → onglet <strong>⚙️ Publication</strong> en dernier.</div>
+            <p class="card-sub">Chaque compétence a un sigle (2-3 lettres, ex: WEB), un titre, une description et des tags séparés par des virgules.</p>
+            <div class="dynamic-list" id="listeCompetences"></div>
+            <button class="add-btn" onclick="ajouterCompetence()">+ Ajouter une compétence</button>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-ghost" onclick="changerOnglet(2)">← Retour</button><button class="btn btn-primary" onclick="changerOnglet(4)">Suivant → Expériences</button></div>
+      </div>
+
+      <!-- ONGLET 4 : EXPÉRIENCES -->
+      <div class="tab-panel" id="tab4">
+        <div class="card">
+          <div class="card-head"><div class="card-title">💼 Expériences professionnelles</div></div>
+          <div class="card-body">
+            <div class="vis-hint">👁️ Tu peux <strong>masquer toute cette section</strong> sur la page publique → onglet <strong>⚙️ Publication</strong> en dernier.</div>
+            <p class="card-sub">Chaque expérience a une période, un label (ex: DCH3 • IA), un titre de poste, une description courte et des bullets (une par ligne).</p>
+            <div class="dynamic-list" id="listeExperiences"></div>
+            <button class="add-btn" onclick="ajouterExperience()">+ Ajouter une expérience</button>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-ghost" onclick="changerOnglet(3)">← Retour</button><button class="btn btn-primary" onclick="changerOnglet(5)">Suivant → Projets</button></div>
+      </div>
+
+      <!-- ONGLET 5 : PROJETS -->
+      <div class="tab-panel" id="tab5">
+        <div class="card">
+          <div class="card-head"><div class="card-title">🚀 Projets réalisés</div></div>
+          <div class="card-body">
+            <div class="vis-hint">👁️ Tu peux <strong>masquer toute cette section</strong> sur la page publique → onglet <strong>⚙️ Publication</strong> en dernier.</div>
+            <p class="card-sub">Le premier projet sera mis en avant (featured). Sigle = 2-3 lettres. Impact = chiffre ou résultat clé (optionnel).</p>
+            <div class="dynamic-list" id="listeProjets"></div>
+            <button class="add-btn" onclick="ajouterProjet()">+ Ajouter un projet</button>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-ghost" onclick="changerOnglet(4)">← Retour</button><button class="btn btn-primary" onclick="changerOnglet(6)">Suivant → Certif</button></div>
+      </div>
+
+      <!-- ONGLET 6 : CERTIFICATIONS & LANGUES -->
+      <div class="tab-panel" id="tab6">
+        <div class="card">
+          <div class="card-head"><div class="card-title">🎓 Certifications, Langues & Intérêts</div></div>
+          <div class="card-body">
+            <div class="dynamic-list" id="listeCertifs"></div>
+            <button class="add-btn" onclick="ajouterCertif()">+ Ajouter une certification</button>
+            <div style="height:20px"></div>
+            <div class="form-grid">
+              <div class="form-group full"><label>Langues (séparées par des virgules)</label><input id="f_langues" class="ni" placeholder="Ex: Français, Fon, Anglais"></div>
+              <div class="form-group full"><label>Centres d'intérêt (séparés par des virgules)</label><input id="f_interets" class="ni" placeholder="Ex: Voyages, Football, Basketball"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-ghost" onclick="changerOnglet(5)">← Retour</button><button class="btn btn-primary" onclick="changerOnglet(7)">Suivant → Contact</button></div>
+      </div>
+
+      <!-- ONGLET 7 : CONTACT -->
+      <div class="tab-panel" id="tab7">
+        <div class="card">
+          <div class="card-head"><div class="card-title">📡 Section Contact</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group full"><label>Titre de la section contact</label><input id="ct_titre" class="ni" placeholder="Ex: Un projet à structurer ? Travaillons ensemble."></div>
+              <div class="form-group full"><label>Description</label><textarea id="ct_desc" class="ni" placeholder="Texte d'invitation à contacter (2-3 phrases)..."></textarea></div>
+              <div class="form-group full"><label>Localisation</label><div class="input-wrap"><span class="input-icon">📍</span><input id="ct_loc" placeholder="Ex: Abomey-Calavi, Bénin"></div></div>
+              <div class="form-group full"><label>Numéro WhatsApp (avec indicatif, sans espaces)</label><div class="input-wrap"><span class="input-icon">💬</span><input id="ct_wa" placeholder="Ex: 2290161003280"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-ghost" onclick="changerOnglet(6)">← Retour</button><button class="btn btn-primary" onclick="changerOnglet(8)">Suivant → Publication</button></div>
+      </div>
+
+      <!-- ONGLET 8 : PUBLICATION -->
+      <div class="tab-panel" id="tab8">
+        <div class="card">
+          <div class="card-head"><div class="card-title">⚙️ Publication</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>Domaine de base</label><select id="f_domaine" class="ni"><option value="sotchedji.store">sotchedji.store</option></select></div>
+              <div class="form-group"><label>Plan d'abonnement</label><select id="f_abonnement" class="ni"><option value="gratuit">🆓 Gratuit</option><option value="standard">⭐ Standard</option><option value="premium">💎 Premium</option></select></div>
+              <div class="form-group"><label>Durée de l'abonnement</label><select id="f_duree" class="ni">
+                <option value="1">1 mois</option>
+                <option value="3">3 mois</option>
+                <option value="6">6 mois</option>
+                <option value="12" selected>1 an (12 mois)</option>
+                <option value="24">2 ans</option>
+                <option value="36">3 ans</option>
+                <option value="120">Illimité (10 ans)</option>
+              </select></div>
+              <div class="form-group"><label>Template de design *</label><select id="f_template" class="ni"></select></div>
+            </div>
+            <div style="margin-top:16px;padding:14px;background:var(--blue-lt);border-radius:10px;font-size:.82rem;color:var(--blue)">
+              💡 Après avoir cliqué <strong>Enregistrer</strong>, le client apparaîtra dans la liste avec un bouton <strong>🚀 Déployer</strong>. Le déploiement lancera la création du repo GitHub, du sous-domaine DNS et de la page en ligne.
+            </div>
+          </div>
+        </div>
+
+        <!-- VISIBILITÉ -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">👁️ Visibilité — Choisir ce qui s'affiche</div>
+          </div>
+          <div class="card-body">
+            <p class="card-sub">Active ou désactive chaque élément sur la landing page publique du client. Tout est visible par défaut.</p>
+
+            <div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📋 Informations de contact</div>
+            <div class="vis-grid">
+              <label class="vis-item"><div><div class="vis-label">Téléphone</div><div class="vis-sub">Dans la section contact</div></div><label class="toggle"><input type="checkbox" id="vis_telephone" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Email</div><div class="vis-sub">Lien mailto + liste contact</div></div><label class="toggle"><input type="checkbox" id="vis_email" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">WhatsApp</div><div class="vis-sub">Bouton d'action</div></div><label class="toggle"><input type="checkbox" id="vis_whatsapp" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Localisation</div><div class="vis-sub">Ville / pays</div></div><label class="toggle"><input type="checkbox" id="vis_localisation" checked><span class="toggle-slider"></span></label></label>
+            </div>
+
+            <div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;">🎯 Éléments du Hero</div>
+            <div class="vis-grid">
+              <label class="vis-item"><div><div class="vis-label">Tagline / Eyebrow</div><div class="vis-sub">Petit chip animé en haut</div></div><label class="toggle"><input type="checkbox" id="vis_eyebrow" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Stats flottantes</div><div class="vis-sub">Cartes autour de la photo</div></div><label class="toggle"><input type="checkbox" id="vis_stats" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Tél dans le hero</div><div class="vis-sub">Proof card téléphone</div></div><label class="toggle"><input type="checkbox" id="vis_proof_tel" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Email dans le hero</div><div class="vis-sub">Proof card email</div></div><label class="toggle"><input type="checkbox" id="vis_proof_email" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Localisation hero</div><div class="vis-sub">Proof card localisation</div></div><label class="toggle"><input type="checkbox" id="vis_proof_loc" checked><span class="toggle-slider"></span></label></label>
+            </div>
+
+            <div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;">📂 Sections du portfolio</div>
+            <div class="vis-grid">
+              <label class="vis-item"><div><div class="vis-label">Compétences</div><div class="vis-sub">Grille de skills</div></div><label class="toggle"><input type="checkbox" id="vis_competences" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Expériences</div><div class="vis-sub">Timeline des postes</div></div><label class="toggle"><input type="checkbox" id="vis_experiences" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Projets</div><div class="vis-sub">Grille des réalisations</div></div><label class="toggle"><input type="checkbox" id="vis_projets" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Certifications</div><div class="vis-sub">Formations & diplômes</div></div><label class="toggle"><input type="checkbox" id="vis_certifications" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Langues</div><div class="vis-sub">Pills de langues</div></div><label class="toggle"><input type="checkbox" id="vis_langues" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Centres d'intérêt</div><div class="vis-sub">Hobbies & passions</div></div><label class="toggle"><input type="checkbox" id="vis_interets" checked><span class="toggle-slider"></span></label></label>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-teal" onclick="enregistrerClient()">✅ Enregistrer le client</button>
+          <button class="btn btn-ghost" onclick="changerOnglet(7)">← Retour</button>
+          <button class="btn" style="background:#f0f4f8;color:var(--muted);" onclick="resetForm()">🗑 Effacer tout</button>
+        </div>
+      </div>
+
+    </div><!-- fin vue-form -->
+
+    <!-- ═══ VUE TEMPLATES ═══ -->
+    <div id="vue-templates" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">🎨 Templates de design</div>
+          <button class="btn btn-primary btn-sm" onclick="ouvrirEditTemplate(null)">+ Nouveau template</button>
+        </div>
+        <div id="templatesGrid" style="padding:20px 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px">
+          <div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">⏳ Chargement...</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL ÉDITION TEMPLATE -->
+<div class="modal-overlay" id="modalEditTemplate">
+  <div class="modal" style="max-width:820px;max-height:92vh">
+    <div class="modal-hd">
+      <div class="modal-title" id="tplEditTitle">✨ Nouveau template</div>
+      <button class="modal-close" onclick="fermerEditTemplate()">✕</button>
+    </div>
+
+    <div class="tabs-wrap" id="tplTabsWrap" style="margin-bottom:16px">
+      <button class="tab-btn active" onclick="changerTplTab(0)">📝 Informations</button>
+      <button class="tab-btn"        onclick="changerTplTab(1)">🎨 Variables CSS</button>
+      <button class="tab-btn"        onclick="changerTplTab(2)">👁 Prévisualisation</button>
+    </div>
+
+    <!-- Tab 0 : Infos + aperçu couleurs -->
+    <div class="tab-panel active" id="tplTab0">
+      <input type="hidden" id="tpl_id">
+      <div class="form-grid">
+        <div class="form-group"><label>Nom du template *</label><input id="tpl_nom" class="ni" placeholder="Ex: Classique Professionnel"></div>
+        <div class="form-group"><label>Prix (FCFA, 0 = gratuit)</label><input id="tpl_prix" class="ni" type="number" min="0" placeholder="0"></div>
+        <div class="form-group full"><label>Description</label><textarea id="tpl_desc" class="ni" style="min-height:60px" placeholder="Décris le style — ex: Bleu marine, teal et or — sobre et professionnel"></textarea></div>
+      </div>
+      <div style="margin-top:20px">
+        <div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">🎨 Aperçu des couleurs (depuis les variables CSS)</div>
+        <div id="colorSwatches" style="display:flex;gap:8px;flex-wrap:wrap;min-height:38px">
+          <span style="color:var(--muted);font-size:.8rem;font-style:italic">Saisis les variables CSS dans l'onglet 🎨 pour voir l'aperçu</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 1 : Éditeur CSS -->
+    <div class="tab-panel" id="tplTab1">
+      <div style="padding:10px 14px;background:var(--blue-lt);border:1px solid #a8d4f0;border-radius:8px;font-size:.79rem;color:#1a4a6e;margin-bottom:12px;line-height:1.7">
+        Colle ici les variables CSS du template. Format : <code>:root { --nom-var: valeur; }</code><br>
+        Ces variables sont injectées en tête de la page portfolio du client. Tu peux tout personnaliser : couleurs, polices, espacements, ombres, etc.
+      </div>
+      <textarea id="tpl_css" class="json-box" style="min-height:380px;font-size:.76rem;tab-size:2"
+        placeholder=":root {&#10;  --primary:      #2176ae;&#10;  --primary-dark:  #0f2d4a;&#10;  --accent:        #0d9e8e;&#10;  --accent-light:  #e3f7f5;&#10;  --gold:          #c89b3c;&#10;  --text:          #0f2d4a;&#10;  --bg:            #f3f7fc;&#10;  --surface:       #ffffff;&#10;  --border:        rgba(15,45,74,.12);&#10;  /* ... autres variables ... */&#10;}"
+        oninput="updateCSSPreview()"></textarea>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="copy-btn" onclick="chargerCSSExemple('classique')">📋 Exemple Classique</button>
+        <button class="copy-btn" onclick="chargerCSSExemple('moderne')">📋 Exemple Moderne</button>
+        <button class="copy-btn" onclick="chargerCSSExemple('elegant')">📋 Exemple Élégant</button>
+      </div>
+    </div>
+
+    <!-- Tab 2 : Prévisualisation -->
+    <div class="tab-panel" id="tplTab2">
+      <div style="text-align:center;padding:20px 0 16px">
+        <p style="color:var(--muted);font-size:.84rem;margin-bottom:16px;line-height:1.6">
+          Génère un portfolio exemple complet avec ce template CSS pour voir le rendu final.<br>
+          <strong>Enregistre d'abord</strong> le template si tu as fait des modifications.
+        </p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-teal" onclick="previewTemplatePleinEcran()">🚀 Ouvrir prévisualisation (nouvel onglet)</button>
+          <button class="btn btn-ghost" onclick="previewTemplateInline()">👁 Aperçu inline</button>
+        </div>
+      </div>
+      <div id="previewContainer" style="display:none;margin-top:16px;border:2px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="background:var(--bg);padding:8px 14px;font-size:.75rem;font-weight:700;color:var(--muted);display:flex;justify-content:space-between;align-items:center">
+          <span>📄 Aperçu inline — portfolio exemple</span>
+          <button class="copy-btn" style="padding:4px 10px;font-size:.72rem" onclick="document.getElementById('previewContainer').style.display='none'">✕ Fermer</button>
+        </div>
+        <iframe id="previewFrame" style="width:100%;height:520px;border:none;display:block"></iframe>
+      </div>
+      <div id="colorSwatchesFull" style="margin-top:20px"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
+      <button class="btn btn-teal" onclick="sauvegarderTemplateEdit()">✅ Enregistrer le template</button>
+      <button class="btn btn-ghost" onclick="fermerEditTemplate()">Annuler</button>
+      <button class="btn btn-sm" id="btnSupprimerTpl" style="background:var(--rose-lt);color:var(--rose);border:1.5px solid #f9c8cc;display:none" onclick="supprimerTemplateEdit()">🗑 Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT -->
+<div class="modal-overlay" id="modalImport">
+  <div class="modal import-modal">
+    <div class="modal-hd">
+      <div class="modal-title">📥 Importer / Exporter un client</div>
+      <button class="modal-close" onclick="fermerImport()">✕</button>
+    </div>
+    <p class="modal-sub">Télécharge le template (JSON ou Excel), remplis-le, puis importe-le pour créer le client automatiquement.</p>
+
+    <div class="import-tabs">
+      <button class="import-tab active"   onclick="switchImportTab(0)">📋 Template JSON</button>
+      <button class="import-tab"          onclick="switchImportTab(1)">⬆️ Importer JSON</button>
+      <button class="import-tab excel-tab" onclick="switchImportTab(2)">📊 Template Excel</button>
+      <button class="import-tab excel-tab" onclick="switchImportTab(3)">⬆️ Importer Excel</button>
+    </div>
+
+    <!-- PANEL 0 : TEMPLATE JSON -->
+    <div class="import-panel active" id="ipanel0">
+      <div class="tpl-info">
+        📋 <strong>Mode JSON :</strong><br>
+        1. Clique <strong>Copier le template</strong> · colle dans Notepad ou VS Code<br>
+        2. Les champs marqués <code>🔒 AUTO</code> dans le bloc <code>_NOTICE</code> sont gérés automatiquement — ne pas toucher<br>
+        3. Remplace toutes les autres valeurs par les vraies infos du client<br>
+        4. Va dans l'onglet <strong>⬆️ Importer JSON</strong> · colle et valide
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="copy-btn" onclick="copierTemplate()">📋 Copier le template JSON</button>
+        <button class="copy-btn" onclick="afficherTemplate()">👁 Voir le template</button>
+      </div>
+      <textarea class="json-box" id="tplPreview" readonly placeholder="Clique sur 'Voir le template' pour afficher le JSON ici..." style="min-height:220px;background:#f8faff;color:#555"></textarea>
+    </div>
+
+    <!-- PANEL 1 : IMPORT JSON -->
+    <div class="import-panel" id="ipanel1">
+      <div class="tpl-info" style="background:var(--blue-lt);border-color:#a8d4f0;color:#1a4a6e">
+        💡 Colle ici le JSON rempli. Le bloc <code>_NOTICE</code> sera ignoré automatiquement. Champs obligatoires : <strong>prenom</strong>, <strong>nom</strong>, <strong>profession</strong>.
+      </div>
+      <textarea class="json-box" id="jsonImport" placeholder='{"prenom":"Vincent","nom":"Dupont","profession":"Architecte",...}'></textarea>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-teal" onclick="importerJSON()">✅ Importer le client</button>
+        <button class="btn btn-ghost" onclick="fermerImport()">Annuler</button>
+        <span id="importStatus" style="font-size:.8rem;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- PANEL 2 : TEMPLATE EXCEL -->
+    <div class="import-panel" id="ipanel2">
+      <div class="tpl-info green">
+        📊 <strong>Mode Excel :</strong><br>
+        1. Clique <strong>Télécharger le template Excel</strong> — s'ouvre dans Excel ou Google Sheets<br>
+        2. Chaque ligne = un champ (colonne A = section · B = champ · C = <strong>ta valeur</strong> · D = note d'aide)<br>
+        3. Les lignes avec <strong>🔒 AUTO</strong> en colonne D sont gérées automatiquement — <strong>ne pas modifier la colonne B</strong>, seulement la colonne C si tu veux<br>
+        4. Ajoute des lignes <code>comp_4_sigle</code>, <code>comp_4_titre</code>... pour plus de compétences/expériences/projets<br>
+        5. Enregistre en <strong>.xlsx</strong> · va dans l'onglet <strong>⬆️ Importer Excel</strong>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="copy-btn excel" onclick="telechargerTemplateExcel()">📊 Télécharger template.xlsx</button>
+      </div>
+    </div>
+
+    <!-- PANEL 3 : IMPORT EXCEL -->
+    <div class="import-panel" id="ipanel3">
+      <div class="tpl-info green">
+        ✅ Sélectionne le fichier <strong>.xlsx</strong> rempli. Le formulaire se remplira automatiquement — tu pourras vérifier avant d'enregistrer.
+      </div>
+      <div class="file-drop" id="fileDrop">
+        <input type="file" accept=".xlsx,.xls" id="excelFile" onchange="onFileChosen(this)">
+        <div class="file-drop-icon">📂</div>
+        <div class="file-drop-txt">Clique ici ou glisse ton fichier Excel</div>
+        <div class="file-drop-sub">Formats acceptés : .xlsx · .xls</div>
+      </div>
+      <div class="file-chosen" id="fileChosen">
+        <span>📄</span><span id="fileChosenName">—</span>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-teal" onclick="importerExcel()" style="background:linear-gradient(135deg,#1d6f42,#2e9e5b);box-shadow:0 4px 14px rgba(29,111,66,.35)">📊 Importer depuis Excel</button>
+        <button class="btn btn-ghost" onclick="fermerImport()">Annuler</button>
+        <span id="excelImportStatus" style="font-size:.8rem;color:var(--muted)"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL TEMPLATE -->
+<div class="modal-overlay" id="modalTemplate">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">🎨 Changer le design</div>
+      <button class="modal-close" onclick="fermerModal()">✕</button>
+    </div>
+    <p class="modal-sub">Sélectionne un nouveau design. La landing page du client se met à jour automatiquement sur GitHub.</p>
+    <div class="tpl-grid" id="tplChoix"></div>
+    <div class="modal-actions">
+      <button class="btn btn-teal" onclick="appliquerTemplate()">Appliquer le design</button>
+      <button class="btn btn-ghost" onclick="fermerModal()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
+
+
+<script>
+  // ═══════════════════════════════════════════════════════════
+  // URL de l'API Apps Script — mettre à jour après redéploiement
+  // ═══════════════════════════════════════════════════════════
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzRetmJrnZXv0Yn6IxoSA3ajk5TWgJ-0vqNNbWqJCP4Vpcn2Oe_e4jIjlquHgwP7mbsbQ/exec';
+
+  // Helper universel fetch → remplace google.script.run
+  async function api(action, data = null) {
+    try {
+      let res;
+      if (data === null) {
+        // GET (lecture)
+        res = await fetch(`${API_URL}?action=${action}`, { redirect: 'follow' });
+      } else {
+        // POST (mutation)
+        res = await fetch(API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          body: JSON.stringify({ action, data })
+        });
+      }
+      return await res.json();
+    } catch (err) {
+      return { error: err.message || String(err) };
+    }
+  }
+
+  let allClients = [], allTemplates = [];
+  let selectedClientId = null, selectedTemplateId = null;
+  let ongletActif = 0;
+
+  // ── Clock ──
+  function tick() {
+    const n = new Date();
+    const topDate = document.getElementById('topDate');
+    const topTime = document.getElementById('topTime');
+    if (topDate) topDate.textContent = n.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    if (topTime) topTime.textContent = n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  }
+  tick(); setInterval(tick, 30000);
+
+  // ── Toast ──
+  function toast(msg, type='', icon='') {
+    const icons = {success:'✅',error:'❌',info:'ℹ️'};
+    const t = document.getElementById('toast');
+    if (!t) { console.log(msg); return; }
+    const toastIcon = document.getElementById('toastIcon');
+    const toastMsg = document.getElementById('toastMsg');
+    if (toastIcon) toastIcon.textContent = icon || icons[type] || '💬';
+    if (toastMsg) toastMsg.textContent  = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast', 4200);
+  }
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  function setTableMessage(tbodyId, icon, message) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">${icon}</div><p>${message}</p></div></td></tr>`;
+  }
+
+  function normaliserListe(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  // ── Navigation vues ──
+  function afficherVue(vue) {
+    ['dashboard','clients','form','templates'].forEach(v => {
+      const el = document.getElementById('vue-'+v);
+      if (el) el.style.display = v === vue ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sb-item').forEach((el,i) => {
+      el.classList.toggle('active', ['dashboard','clients','form','templates'][i] === vue);
+    });
+    const titres = {dashboard:'Tableau de bord', clients:'Clients', form:'Nouveau client', templates:'Templates'};
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = titres[vue] || '';
+    if (vue === 'clients')   renderTable('tableClients2');
+    if (vue === 'templates') renderTemplatesView();
+  }
+
+  // ── Onglets formulaire ──
+  function changerOnglet(n) {
+    ongletActif = n;
+    document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i===n));
+    document.querySelectorAll('.tab-btn').forEach((b,i)  => b.classList.toggle('active', i===n));
+  }
+
+  // ── Init ──
+  async function chargerTemplates() {
+    const tpls = await api('getTemplates');
+    if (tpls && tpls.error) {
+      allTemplates = [];
+      setText('statTemplates', '!');
+      toast('Erreur Templates : ' + tpls.error, 'error');
+      const sel = document.getElementById('f_template');
+      if (sel) sel.innerHTML = '<option value="1">Classique (par défaut)</option>';
+      return;
+    }
+    allTemplates = normaliserListe(tpls);
+    const sel = document.getElementById('f_template');
+    if (sel) {
+      sel.innerHTML = allTemplates.length
+        ? allTemplates.map(t => `<option value="${t.id}">${t.nom}${t.prix>0?' — '+Number(t.prix).toLocaleString('fr-FR')+' FCFA':' (Gratuit)'}</option>`).join('')
+        : '<option value="1">Classique (par défaut)</option>';
+    }
+    setText('statTemplates', allTemplates.length);
+    renderTable('tableClients');
+    renderTable('tableClients2');
+  }
+
+  async function chargerClients() {
+    setTableMessage('tableClients', '⏳', 'Chargement...');
+    setTableMessage('tableClients2', '⏳', 'Chargement...');
+    const clients = await api('getClients');
+    if (clients && clients.error) {
+      const msg = 'Erreur Clients : ' + clients.error;
+      allClients = [];
+      setText('statTotal', '!'); setText('statOnline', '!');
+      setText('statPending', '!'); setText('clientCount', '');
+      setTableMessage('tableClients', '❌', msg);
+      setTableMessage('tableClients2', '❌', msg);
+      toast(msg, 'error');
+      return;
+    }
+    allClients = normaliserListe(clients);
+    setText('statTotal', allClients.length);
+    setText('statOnline', allClients.filter(c=>c.statut==='en_ligne').length);
+    setText('statPending', allClients.filter(c=>c.statut==='en_attente').length);
+    setText('clientCount', allClients.length ? '('+allClients.length+')' : '');
+    renderTable('tableClients');
+    renderTable('tableClients2');
+  }
+
+  function renderTable(tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    if (!allClients.length) {
+      setTableMessage(tbodyId, '👥', 'Aucun client encore.');
+      return;
+    }
+    tbody.innerHTML = allClients.map(c => {
+      const tpl   = allTemplates.find(t => String(t.id) === String(c.template_id));
+      const badge = c.statut === 'en_ligne'
+        ? '<span class="badge badge-online">En ligne</span>'
+        : '<span class="badge badge-pending">En attente</span>';
+      const ghUser  = 'sdgpro25-lab';
+      const ghUrl   = `https://github.com/${ghUser}/${c.repo_github}`;
+      const pubUrl  = `https://${c.sous_domaine}`;
+      const liens   = c.statut === 'en_ligne'
+        ? `<div class="links-cell">
+             <a class="lien-pub" href="${pubUrl}" target="_blank">🔗 ${c.sous_domaine}</a>
+             <a class="lien-gh"  href="${ghUrl}"  target="_blank">⚙️ ${c.repo_github}</a>
+           </div>`
+        : `<div class="links-cell"><span class="lien-attente">⏳ ${c.sous_domaine}</span></div>`;
+      const initiales = ((c.prenom||'?')[0]+(c.nom||'?')[0]).toUpperCase();
+      const deployBtn = c.statut==='en_attente' ? `<button class="btn btn-teal btn-sm" onclick="deployer('${c.id}',this)">🚀 Déployer</button>` : '';
+      // Dates
+      const dateInscr = c.date_creation       ? `<div style="font-size:.72rem;color:var(--muted)">📅 ${c.date_creation}</div>` : '';
+      const dateFin   = c.date_fin_abonnement || '';
+      let dateBadge   = '';
+      if (dateFin) {
+        const jours  = Math.ceil((new Date(dateFin) - new Date()) / 86400000);
+        const cls    = jours < 0 ? 'expired' : jours <= 30 ? 'warn' : 'ok';
+        const label  = jours < 0 ? `Expiré (${dateFin})` : jours <= 30 ? `⚠️ Expire dans ${jours}j` : `✓ ${dateFin}`;
+        dateBadge = `<span class="date-badge ${cls}">${label}</span>`;
+      }
+      return `<tr>
+        <td><div class="client-cell"><div class="client-av">${initiales}</div><div><div class="client-name">${c.prenom} ${c.nom}</div><div class="client-email">${c.email||'—'}</div></div></div></td>
+        <td style="color:var(--muted);font-size:.84rem">${c.profession}</td>
+        <td><span class="tpl-badge">${tpl?tpl.nom:'—'}</span></td>
+        <td>${liens}</td>
+        <td><div>${badge}</div><div style="margin-top:4px">${dateInscr}${dateBadge}</div></td>
+        <td><div class="td-actions">
+          ${deployBtn}
+          <button class="btn btn-gold btn-sm" onclick="ouvrirModalTemplate('${c.id}')">🎨 Design</button>
+          ${c.statut==='en_ligne'?`<button class="btn btn-sm btn-ghost" onclick="mettreAJour('${c.id}',this)">🔄 Màj</button>`:''}
+          <button class="btn btn-sm" style="background:#f0faf4;color:#1d6f42;border:1px solid #c3dfc8" onclick="exporterClientExcel('${c.id}')">📊 Excel</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Lire le formulaire ──
+  function lireFormulaire() {
+    const competences = [...document.querySelectorAll('.comp-item')].map(el => ({
+      sigle: el.querySelector('.comp-sigle').value.trim(),
+      titre: el.querySelector('.comp-titre').value.trim(),
+      description: el.querySelector('.comp-desc').value.trim(),
+      tags: el.querySelector('.comp-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+    })).filter(c => c.titre);
+
+    const experiences = [...document.querySelectorAll('.exp-item')].map(el => ({
+      periode: el.querySelector('.exp-periode').value.trim(),
+      label:   el.querySelector('.exp-label').value.trim(),
+      titre:   el.querySelector('.exp-titre').value.trim(),
+      description: el.querySelector('.exp-desc').value.trim(),
+      bullets: el.querySelector('.exp-bullets').value.split('\n').map(b=>b.trim()).filter(Boolean)
+    })).filter(e => e.titre);
+
+    const projets = [...document.querySelectorAll('.proj-item')].map(el => ({
+      sigle: el.querySelector('.proj-sigle').value.trim(),
+      type:  el.querySelector('.proj-type').value.trim(),
+      titre: el.querySelector('.proj-titre').value.trim(),
+      description: el.querySelector('.proj-desc').value.trim(),
+      impact: el.querySelector('.proj-impact').value.trim(),
+      tags:  el.querySelector('.proj-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+      lien:  el.querySelector('.proj-lien').value.trim()
+    })).filter(p => p.titre);
+
+    const certifications = [...document.querySelectorAll('.certif-item')].map(el => ({
+      titre: el.querySelector('.certif-titre').value.trim(),
+      institution: el.querySelector('.certif-inst').value.trim()
+    })).filter(c => c.titre);
+
+    return {
+      prenom:     g('f_prenom'), nom: g('f_nom'), email: g('f_email'),
+      telephone:  g('f_tel'), profession: g('f_profession'), photo_url: g('f_photo'),
+      template_id: g('f_template'), domaine: g('f_domaine'), abonnement: g('f_abonnement'), duree_mois: g('f_duree') || '12',
+      profil: {
+        hero: {
+          eyebrow:   g('h_eyebrow'),
+          sous_titre: g('h_sous_titre'),
+          lead:      g('h_lead'),
+          stats: [
+            { valeur: g('s1_val'), desc: g('s1_desc') },
+            { valeur: g('s2_val'), desc: g('s2_desc') },
+            { valeur: g('s3_val'), desc: g('s3_desc') }
+          ].filter(s => s.valeur)
+        },
+        apropos: {
+          titre: g('ap_titre'), intro: g('ap_intro'),
+          para1: g('ap_p1'),  para2: g('ap_p2'), para3: g('ap_p3'),
+          apports: [
+            {titre:g('ap1t'),desc:g('ap1d')},{titre:g('ap2t'),desc:g('ap2d')},{titre:g('ap3t'),desc:g('ap3d')}
+          ].filter(a=>a.titre),
+          values: [
+            {titre:g('v1t'),desc:g('v1d')},{titre:g('v2t'),desc:g('v2d')},{titre:g('v3t'),desc:g('v3d')}
+          ].filter(v=>v.titre)
+        },
+        competences, experiences, projets, certifications,
+        langues:  g('f_langues').split(',').map(l=>l.trim()).filter(Boolean),
+        interets: g('f_interets').split(',').map(i=>i.trim()).filter(Boolean),
+        contact: {
+          titre: g('ct_titre'), description: g('ct_desc'),
+          localisation: g('ct_loc'), whatsapp: g('ct_wa')
+        },
+        visibilite: {
+          telephone:      chk('vis_telephone'),
+          email:          chk('vis_email'),
+          whatsapp:       chk('vis_whatsapp'),
+          localisation:   chk('vis_localisation'),
+          eyebrow:        chk('vis_eyebrow'),
+          stats:          chk('vis_stats'),
+          proof_tel:      chk('vis_proof_tel'),
+          proof_email:    chk('vis_proof_email'),
+          proof_loc:      chk('vis_proof_loc'),
+          competences:    chk('vis_competences'),
+          experiences:    chk('vis_experiences'),
+          projets:        chk('vis_projets'),
+          certifications: chk('vis_certifications'),
+          langues:        chk('vis_langues'),
+          interets:       chk('vis_interets'),
+        }
+      }
+    };
+  }
+  function g(id) { const el=document.getElementById(id); return el ? el.value.trim() : ''; }
+  function chk(id) { const el=document.getElementById(id); return el ? el.checked : true; }
+
+  // ── Enregistrer ──
+  async function enregistrerClient() {
+    const data = lireFormulaire();
+    if (!data.prenom || !data.nom || !data.profession) {
+      toast('Remplis au moins le prénom, le nom et la profession (onglet Identité)', 'error'); return;
+    }
+    toast('Enregistrement...', 'info');
+    const r = await api('sauvegarderClient', data);
+    if (r && r.success) {
+      toast('Client enregistré ! Sous-domaine : '+r.sousdomaine, 'success');
+      resetForm(); chargerClients(); afficherVue('dashboard');
+    } else {
+      toast('Erreur : '+(r && r.error ? r.error : 'réponse vide'), 'error');
+    }
+  }
+
+  // ── Déployer ──
+  async function deployer(id, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Déploiement...';
+    toast('Déploiement en cours — 30 à 60 secondes...','info','⏳');
+    const r = await api('deployerClient', { id });
+    if (r && r.success) {
+      toast('Déployé ! '+r.url,'success'); chargerClients();
+    } else {
+      toast('Erreur : '+(r && r.error ? r.error : 'réponse vide'),'error');
+      btn.disabled=false; btn.innerHTML='🚀 Déployer';
+    }
+  }
+
+  // ── Mettre à jour portfolio ──
+  async function mettreAJour(id, btn) {
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    toast('Mise à jour en cours...','info');
+    const r = await api('mettreAJourPortfolio', { id });
+    toast(r && r.success ? 'Portfolio mis à jour !' : 'Erreur : '+(r && r.error ? r.error : '?'), r && r.success ? 'success' : 'error');
+    chargerClients();
+  }
+
+  // ── Modal template ──
+  const tplThumbs = ['tpl-t1','tpl-t2','tpl-t3'];
+  function ouvrirModalTemplate(id) {
+    selectedClientId = id; selectedTemplateId = null;
+    const client = allClients.find(c=>c.id===id);
+    document.getElementById('tplChoix').innerHTML = allTemplates.map((t,i) => `
+      <div class="tpl-card ${String(t.id)===String(client.template_id)?'selected':''}" onclick="selTpl(this,'${t.id}')">
+        <div class="tpl-thumb ${tplThumbs[i%tplThumbs.length]}"></div>
+        <div class="tpl-name">${t.nom}</div>
+        <div class="tpl-desc">${t.description}</div>
+        <span class="tpl-prix ${t.prix>0?'paid':'free'}">${t.prix>0?Number(t.prix).toLocaleString('fr-FR')+' FCFA':'✓ Gratuit'}</span>
+      </div>`).join('');
+    document.getElementById('modalTemplate').classList.add('open');
+  }
+  function selTpl(el,id) { document.querySelectorAll('.tpl-card').forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); selectedTemplateId=id; }
+  async function appliquerTemplate() {
+    if (!selectedTemplateId) { toast('Sélectionne un design','error'); return; }
+    toast('Mise à jour du design...','info','🎨'); fermerModal();
+    const r = await api('changerTemplate', { clientId: selectedClientId, templateId: selectedTemplateId });
+    toast(r && r.success ? 'Design mis à jour !' : 'Erreur : '+(r && r.error ? r.error : '?'), r && r.success ? 'success' : 'error');
+    chargerClients();
+  }
+  function fermerModal() { document.getElementById('modalTemplate').classList.remove('open'); }
+  document.getElementById('modalTemplate').addEventListener('click', e => { if(e.target===document.getElementById('modalTemplate')) fermerModal(); });
+
+  // ── Listes dynamiques ──
+  function ajouterCompetence() {
+    const list = document.getElementById('listeCompetences');
+    const n = list.children.length + 1;
+    const div = document.createElement('div');
+    div.className = 'dyn-item comp-item';
+    div.innerHTML = `
+      <div class="dyn-item-head"><span class="dyn-item-num">Compétence ${n}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Sigle</label><input class="ni comp-sigle" placeholder="WEB · IA · NET"></div>
+        <div class="form-group"><label>Titre *</label><input class="ni comp-titre" placeholder="Développement web"></div>
+        <div class="form-group full"><label>Description</label><textarea class="ni comp-desc" style="min-height:64px" placeholder="Description courte..."></textarea></div>
+        <div class="form-group full"><label>Tags (séparés par des virgules)</label><input class="ni comp-tags" placeholder="Django, Python, JavaScript, HTML/CSS"></div>
+      </div>`;
+    list.appendChild(div);
+  }
+
+  function ajouterExperience() {
+    const list = document.getElementById('listeExperiences');
+    const n = list.children.length + 1;
+    const div = document.createElement('div');
+    div.className = 'dyn-item exp-item';
+    div.innerHTML = `
+      <div class="dyn-item-head"><span class="dyn-item-num">Expérience ${n}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Période</label><input class="ni exp-periode" placeholder="Activités récentes · Jan 2022 - Déc 2024"></div>
+        <div class="form-group"><label>Label / Chip</label><input class="ni exp-label" placeholder="DCH3 Consulting · IA · Solutions métier"></div>
+        <div class="form-group full"><label>Titre du poste *</label><input class="ni exp-titre" placeholder="Coordonnateur des projets à DCH3 Consulting Group"></div>
+        <div class="form-group full"><label>Description courte</label><input class="ni exp-desc" placeholder="Coordination de projets, développement de solutions..."></div>
+        <div class="form-group full"><label>Bullets (une par ligne)</label><textarea class="ni exp-bullets" style="min-height:120px" placeholder="Développement de l'application King Guest House en Django&#10;Coordination du Guichet Unique dans 20+ communes&#10;..."></textarea></div>
+      </div>`;
+    list.appendChild(div);
+  }
+
+  function ajouterProjet() {
+    const list = document.getElementById('listeProjets');
+    const n = list.children.length + 1;
+    const div = document.createElement('div');
+    div.className = 'dyn-item proj-item';
+    div.innerHTML = `
+      <div class="dyn-item-head"><span class="dyn-item-num">Projet ${n}${n===1?' (mis en avant)':''}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Sigle</label><input class="ni proj-sigle" placeholder="GU · KG · AI"></div>
+        <div class="form-group"><label>Type</label><input class="ni proj-type" placeholder="Projet majeur · Application web · IA"></div>
+        <div class="form-group full"><label>Titre *</label><input class="ni proj-titre" placeholder="Nom du projet"></div>
+        <div class="form-group full"><label>Description</label><textarea class="ni proj-desc" style="min-height:64px" placeholder="Description du projet..."></textarea></div>
+        <div class="form-group full"><label>Impact / Résultat clé (optionnel)</label><input class="ni proj-impact" placeholder="Ex: Impact : 20+ communes du Bénin accompagnées"></div>
+        <div class="form-group"><label>Tags</label><input class="ni proj-tags" placeholder="Django, Python, Gestion"></div>
+        <div class="form-group"><label>Lien (optionnel)</label><input class="ni proj-lien" placeholder="https://..."></div>
+      </div>`;
+    list.appendChild(div);
+  }
+
+  function ajouterCertif() {
+    const list = document.getElementById('listeCertifs');
+    const n = list.children.length + 1;
+    const div = document.createElement('div');
+    div.className = 'dyn-item certif-item';
+    div.innerHTML = `
+      <div class="dyn-item-head"><span class="dyn-item-num">Certification ${n}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Titre de la formation *</label><input class="ni certif-titre" placeholder="Marketing numérique"></div>
+        <div class="form-group"><label>Institution</label><input class="ni certif-inst" placeholder="Google, Coursera, AFD..."></div>
+      </div>`;
+    list.appendChild(div);
+  }
+
+  function resetForm() {
+    ['f_prenom','f_nom','f_email','f_tel','f_profession','f_photo',
+     'h_eyebrow','h_sous_titre','h_lead','s1_val','s1_desc','s2_val','s2_desc','s3_val','s3_desc',
+     'ap_titre','ap_intro','ap_p1','ap_p2','ap_p3',
+     'ap1t','ap1d','ap2t','ap2d','ap3t','ap3d','v1t','v1d','v2t','v2d','v3t','v3d',
+     'ct_titre','ct_desc','ct_loc','ct_wa','f_langues','f_interets'
+    ].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const fdur = document.getElementById('f_duree'); if(fdur) fdur.value='12';
+    ['listeCompetences','listeExperiences','listeProjets','listeCertifs'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.innerHTML='';
+    });
+    // Remettre tous les toggles à ON
+    document.querySelectorAll('[id^="vis_"]').forEach(el => el.checked = true);
+    changerOnglet(0);
+  }
+
+  // ── VUE TEMPLATES ─────────────────────────────────────────────
+  function renderTemplatesView() {
+    const grid = document.getElementById('templatesGrid');
+    if (!allTemplates.length) {
+      grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">Aucun template. <button class="btn btn-primary btn-sm" onclick="ouvrirEditTemplate(null)">+ Créer le premier</button></div>`;
+      return;
+    }
+    grid.innerHTML = allTemplates.map(t => {
+      const swatches = extraireSwatchesCss(t.css_vars || '');
+      const swatchHtml = swatches.slice(0,5).map(s =>
+        `<div class="tpl-swatch" style="background:${s.value}" title="${s.name}"></div>`
+      ).join('');
+      const prixBadge = t.prix > 0
+        ? `<span class="tpl-prix paid">${Number(t.prix).toLocaleString('fr-FR')} FCFA</span>`
+        : `<span class="tpl-prix free">✓ Gratuit</span>`;
+      const bgColors = swatches.length >= 2
+        ? `background:linear-gradient(135deg,${swatches[0]?.value||'#2176ae'},${swatches[1]?.value||'#0d9e8e'})`
+        : 'background:linear-gradient(135deg,#c8d8e8,#d8e8f0)';
+      return `
+        <div class="tpl-edit-card">
+          <div class="tpl-preview-band" style="${bgColors}">${swatchHtml}</div>
+          <div class="tpl-edit-body">
+            <div class="tpl-edit-name">${t.nom}</div>
+            <div class="tpl-edit-desc">${t.description||'—'}</div>
+            <div style="margin-bottom:12px">${prixBadge}</div>
+            <div class="tpl-edit-actions">
+              <button class="btn btn-ghost btn-sm" onclick="ouvrirEditTemplate('${t.id}')">✏️ Modifier</button>
+              <button class="btn btn-sm btn-primary" onclick="previewTemplateId('${t.id}')">👁 Prévisualiser</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Extrait les couleurs des variables CSS
+  function extraireSwatchesCss(cssVars) {
+    const colors = [];
+    const regex  = /--([a-zA-Z0-9_-]+)\s*:\s*(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsl[a]?\([^)]+\))/g;
+    let m;
+    const seen = new Set();
+    while ((m = regex.exec(cssVars)) !== null) {
+      const name = m[1], value = m[2];
+      if (!seen.has(value)) { seen.add(value); colors.push({ name, value }); }
+    }
+    return colors;
+  }
+
+  // Génère les swatches dans le modal d'édition
+  function updateCSSPreview() {
+    const css = document.getElementById('tpl_css').value;
+    const swatches = extraireSwatchesCss(css);
+    const containers = ['colorSwatches', 'colorSwatchesFull'];
+    containers.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!swatches.length) {
+        el.innerHTML = '<span style="color:var(--muted);font-size:.8rem;font-style:italic">Aucune couleur détectée</span>';
+        return;
+      }
+      el.innerHTML = swatches.map(s => `
+        <div class="color-swatch">
+          <div class="color-swatch-dot" style="background:${s.value}" title="${s.name}: ${s.value}"></div>
+          <div class="color-swatch-label">--${s.name}</div>
+        </div>`).join('');
+    });
+  }
+
+  // Ouvrir le modal d'édition (null = nouveau, sinon id du template)
+  let tplTabActif = 0;
+  function changerTplTab(n) {
+    tplTabActif = n;
+    document.querySelectorAll('#tplTabsWrap .tab-btn').forEach((b,i) => b.classList.toggle('active', i===n));
+    document.querySelectorAll('#modalEditTemplate .tab-panel').forEach((p,i) => p.classList.toggle('active', i===n));
+    if (n === 0) updateCSSPreview();
+  }
+
+  function ouvrirEditTemplate(id) {
+    const t = id ? allTemplates.find(x => String(x.id)===String(id)) : null;
+    document.getElementById('tplEditTitle').textContent = t ? '✏️ Modifier le template' : '✨ Nouveau template';
+    document.getElementById('tpl_id').value    = t ? t.id  : '';
+    document.getElementById('tpl_nom').value   = t ? t.nom : '';
+    document.getElementById('tpl_desc').value  = t ? (t.description||'') : '';
+    document.getElementById('tpl_prix').value  = t ? (t.prix||0) : 0;
+    document.getElementById('tpl_css').value   = t ? (t.css_vars||'') : '';
+    document.getElementById('previewContainer').style.display = 'none';
+    document.getElementById('btnSupprimerTpl').style.display  = t ? 'inline-flex' : 'none';
+    changerTplTab(0);
+    updateCSSPreview();
+    document.getElementById('modalEditTemplate').classList.add('open');
+  }
+  function fermerEditTemplate() {
+    document.getElementById('modalEditTemplate').classList.remove('open');
+  }
+  document.getElementById('modalEditTemplate').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalEditTemplate')) fermerEditTemplate();
+  });
+
+  async function sauvegarderTemplateEdit() {
+    const nom = document.getElementById('tpl_nom').value.trim();
+    if (!nom) { toast('Le nom du template est obligatoire', 'error'); return; }
+    const data = {
+      id:          document.getElementById('tpl_id').value || null,
+      nom,
+      description: document.getElementById('tpl_desc').value.trim(),
+      prix:        parseFloat(document.getElementById('tpl_prix').value) || 0,
+      css_vars:    document.getElementById('tpl_css').value
+    };
+    toast('Enregistrement...', 'info');
+    const r = await api('sauvegarderTemplate', data);
+    if (r && r.success) {
+      toast('Template enregistré !', 'success', '🎨');
+      fermerEditTemplate();
+      await chargerTemplates();
+      setTimeout(() => renderTemplatesView(), 400);
+    } else toast('Erreur : ' + (r && r.error ? r.error : '?'), 'error');
+  }
+
+  async function supprimerTemplateEdit() {
+    const id = document.getElementById('tpl_id').value;
+    if (!id) return;
+    if (!confirm('Supprimer ce template ? Les clients qui l\'utilisent ne seront pas affectés.')) return;
+    const r = await api('supprimerTemplate', { id });
+    if (r && r.success) {
+      toast('Template supprimé', 'success');
+      fermerEditTemplate();
+      await chargerTemplates();
+      setTimeout(renderTemplatesView, 400);
+    } else toast('Erreur : ' + (r && r.error ? r.error : '?'), 'error');
+  }
+
+  // Charge un exemple CSS dans l'éditeur
+  const cssExemples = {};  // rempli après chargerTemplates
+  function chargerCSSExemple(nom) {
+    const mapping = { classique: '1', moderne: '2', elegant: '3' };
+    const id  = mapping[nom];
+    const tpl = allTemplates.find(t => String(t.id) === id);
+    if (tpl && tpl.css_vars) {
+      document.getElementById('tpl_css').value = tpl.css_vars;
+      updateCSSPreview();
+      toast('CSS "' + tpl.nom + '" chargé — modifie-le à ta guise', 'info', '🎨');
+    } else toast('Template d\'exemple introuvable', 'error');
+  }
+
+  // Prévisualiser en plein écran (nouvel onglet)
+  async function previewTemplatePleinEcran() {
+    const cssVars = document.getElementById('tpl_css').value;
+    if (!cssVars.trim()) { toast('Saisis d\'abord des variables CSS dans l\'onglet 🎨', 'error'); return; }
+    toast('Génération du portfolio exemple...', 'info', '🚀');
+    const html = await api('previewTemplateHTML', { cssVars });
+    if (typeof html !== 'string') { toast('Erreur : '+(html && html.error ? html.error : '?'), 'error'); return; }
+    const blob = new Blob([html], {type:'text/html'});
+    const url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
+  // Prévisualiser inline dans le modal
+  async function previewTemplateInline() {
+    const cssVars = document.getElementById('tpl_css').value;
+    if (!cssVars.trim()) { toast('Saisis d\'abord des variables CSS', 'error'); return; }
+    toast('Chargement du portfolio exemple...', 'info');
+    const html = await api('previewTemplateHTML', { cssVars });
+    if (typeof html !== 'string') { toast('Erreur : '+(html && html.error ? html.error : '?'), 'error'); return; }
+    const container = document.getElementById('previewContainer');
+    const iframe    = document.getElementById('previewFrame');
+    container.style.display = 'block';
+    iframe.srcdoc = html;
+    iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Prévisualiser un template existant depuis la grid
+  async function previewTemplateId(id) {
+    const tpl = allTemplates.find(t => String(t.id) === String(id));
+    if (!tpl) { toast('Template introuvable', 'error'); return; }
+    toast('Génération du portfolio exemple...', 'info', '🚀');
+    const html = await api('previewTemplateHTML', { cssVars: tpl.css_vars });
+    if (typeof html !== 'string') { toast('Erreur : '+(html && html.error ? html.error : '?'), 'error'); return; }
+    const blob = new Blob([html], {type:'text/html'});
+    const url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
+  // ── IMPORT MODAL ──────────────────────────────────────────────
+  function ouvrirImport() {
+    document.getElementById('modalImport').classList.add('open');
+    switchImportTab(0);
+  }
+  function fermerImport() {
+    document.getElementById('modalImport').classList.remove('open');
+    document.getElementById('jsonImport').value = '';
+    document.getElementById('importStatus').textContent = '';
+    document.getElementById('tplPreview').value = '';
+    document.getElementById('excelImportStatus').textContent = '';
+    document.getElementById('fileChosen').classList.remove('show');
+    document.getElementById('excelFile').value = '';
+  }
+  function switchImportTab(n) {
+    document.querySelectorAll('.import-panel').forEach((p,i) => p.classList.toggle('active', i===n));
+    document.querySelectorAll('.import-tab').forEach((b,i)  => b.classList.toggle('active', i===n));
+  }
+  document.getElementById('modalImport').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalImport')) fermerImport();
+  });
+
+  // Template JSON complet avec valeurs d'exemple
+  function getTemplateJSON() {
+    return {
+      // ─────────────────────────────────────────────────────────────
+      // NOTICE : champs gérés automatiquement par le système
+      // ─────────────────────────────────────────────────────────────
+      _NOTICE: {
+        "🔒 id":           "AUTO — identifiant unique généré automatiquement, ne pas remplir",
+        "🔒 sous_domaine": "AUTO — généré d'après le prénom (ex: vincent.sotchedji.store)",
+        "🔒 repo_github":  "AUTO — généré d'après le prénom (ex: portfolio-vincent)",
+        "🔒 statut":       "AUTO — géré par le système (en_attente → en_ligne après déploiement)",
+        "🔒 date_creation":"AUTO — date d'enregistrement, générée automatiquement",
+        "ℹ️ template_id":  "1 = Classique (navy/or)  |  2 = Moderne (indigo/violet)  |  3 = Élégant (terra/sépia)",
+        "ℹ️ abonnement":   "gratuit  |  standard  |  premium",
+        "⚠️ ATTENTION":    "Supprime ou ignore ce bloc _NOTICE lors de l'import — il sera ignoré automatiquement"
+      },
+      prenom: "Vincent",
+      nom: "Dupont",
+      email: "vincent@email.com",
+      telephone: "+229 01 23 45 67",
+      profession: "Développeur web & Consultant IT",
+      photo_url: "https://exemple.com/photo.jpg",
+      template_id: "1",
+      domaine: "sotchedji.store",
+      abonnement: "gratuit",
+      profil: {
+        hero: {
+          eyebrow: "Applications web, logiciels desktop, réseaux informatiques et IA",
+          sous_titre: "Développeur web & desktop • Consultant IT • Spécialiste réseaux",
+          lead: "Je conçois et déploie des solutions numériques adaptées aux réalités terrain. Mon approche combine expertise technique, accompagnement humain et usage de l'IA pour des résultats concrets.",
+          stats: [
+            { valeur: "8 ans", desc: "d'expérience en développement" },
+            { valeur: "50+",   desc: "projets livrés" },
+            { valeur: "DCH3",  desc: "fondateur & directeur" }
+          ]
+        },
+        apropos: {
+          titre: "Coordonnateur de projets, développeur et consultant IT orienté terrain.",
+          intro: "Une expertise construite autour d'applications web, de logiciels desktop, de réseaux informatiques et d'intelligence artificielle.",
+          para1: "Premier paragraphe biographique — présente le parcours global et les domaines d'intervention principaux.",
+          para2: "Deuxième paragraphe — approfondit une spécialité, un projet marquant ou une philosophie de travail.",
+          para3: "Troisième paragraphe — optionnel. Laisse vide si deux paragraphes suffisent.",
+          apports: [
+            { titre: "Solutions métier", desc: "Applications web, logiciels desktop sur mesure" },
+            { titre: "Accompagnement terrain", desc: "Formation, maintenance, support utilisateur" },
+            { titre: "IA pratique", desc: "Accompagnement à l'intégration de l'IA en entreprise" }
+          ],
+          values: [
+            { titre: "Coordonnateur projets", desc: "Gestion multi-équipes et pilotage stratégique" },
+            { titre: "IA + Productivité", desc: "Outils IA pour automatiser et optimiser les flux" },
+            { titre: "Réseaux informatiques", desc: "Maintenance, serveurs, sécurité LAN/WAN" }
+          ]
+        },
+        competences: [
+          { sigle: "WEB", titre: "Développement web", description: "Conception d'applications web modernes et responsives", tags: ["Django", "Python", "JavaScript", "HTML/CSS"] },
+          { sigle: "NET", titre: "Réseaux & Systèmes", description: "Configuration, maintenance et sécurisation des réseaux", tags: ["LAN", "VPN", "Linux", "Windows Server"] },
+          { sigle: "IA",  titre: "Intelligence artificielle", description: "Intégration et usage de l'IA en entreprise", tags: ["ChatGPT", "Automatisation", "Prompt Engineering"] }
+        ],
+        experiences: [
+          {
+            periode: "Jan 2022 - Présent",
+            label: "DCH3 Consulting · IA · Solutions métier",
+            titre: "Coordonnateur des projets",
+            description: "Pilotage de projets numériques, développement de solutions sur mesure et accompagnement des équipes.",
+            bullets: [
+              "Développement de l'application King Guest House en Django",
+              "Coordination du Guichet Unique dans 20+ communes du Bénin",
+              "Formation de 50+ agents à l'usage des outils numériques"
+            ]
+          }
+        ],
+        projets: [
+          {
+            sigle: "GU",
+            type: "Projet majeur",
+            titre: "Guichet Unique de l'Agriculture",
+            description: "Plateforme nationale de gestion des subventions et accompagnement des agriculteurs.",
+            impact: "Impact : 20+ communes du Bénin accompagnées",
+            tags: ["Django", "Python", "Gestion publique"],
+            lien: ""
+          },
+          {
+            sigle: "KG",
+            type: "Application web",
+            titre: "King Guest House",
+            description: "Système de gestion hôtelière complet — réservations, facturation, reporting.",
+            impact: "",
+            tags: ["Django", "Bootstrap", "PostgreSQL"],
+            lien: ""
+          }
+        ],
+        certifications: [
+          { titre: "Marketing numérique", institution: "Google" },
+          { titre: "Fondamentaux de la cybersécurité", institution: "Google" }
+        ],
+        langues: ["Français", "Fon", "Anglais"],
+        interets: ["Voyages", "Football", "Basketball", "Lecture"],
+        contact: {
+          titre: "Un projet à structurer ? Travaillons ensemble.",
+          description: "Disponible pour des missions de conseil, de développement sur mesure ou de formation terrain. Réponse sous 24h.",
+          localisation: "Abomey-Calavi, Bénin",
+          whatsapp: "2290161003280"
+        },
+        visibilite: {
+          telephone: true, email: true, whatsapp: true, localisation: true,
+          eyebrow: true, stats: true, proof_tel: true, proof_email: true, proof_loc: true,
+          competences: true, experiences: true, projets: true,
+          certifications: true, langues: true, interets: true
+        }
+      }
+    };
+  }
+
+  function afficherTemplate() {
+    document.getElementById('tplPreview').value = JSON.stringify(getTemplateJSON(), null, 2);
+  }
+
+  function copierTemplate() {
+    const json = JSON.stringify(getTemplateJSON(), null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      toast('Template JSON copié dans le presse-papiers ! Colle-le dans un éditeur de texte.', 'success', '📋');
+    }).catch(() => {
+      // Fallback si clipboard API bloquée
+      document.getElementById('tplPreview').value = json;
+      document.getElementById('tplPreview').select();
+      document.execCommand('copy');
+      toast('Template JSON copié !', 'success', '📋');
+    });
+  }
+
+  // Remplit le formulaire à partir d'un objet JSON importé
+  function remplirFormulaire(d) {
+    function sv(id, val) { const el=document.getElementById(id); if(el && val!==undefined) el.value = val||''; }
+    function sc(id, val) { const el=document.getElementById(id); if(el) el.checked = (val !== false); }
+
+    // Onglet 0 — Identité
+    sv('f_prenom',     d.prenom);
+    sv('f_nom',        d.nom);
+    sv('f_email',      d.email);
+    sv('f_tel',        d.telephone);
+    sv('f_profession', d.profession);
+    sv('f_photo',      d.photo_url);
+    sv('f_domaine',    d.domaine);
+    sv('f_abonnement', d.abonnement);
+
+    const p = d.profil || {};
+
+    // Onglet 1 — Hero
+    const h = p.hero || {};
+    sv('h_eyebrow',    h.eyebrow);
+    sv('h_sous_titre', h.sous_titre);
+    sv('h_lead',       h.lead);
+    const stats = h.stats || [];
+    sv('s1_val', (stats[0]||{}).valeur); sv('s1_desc', (stats[0]||{}).desc);
+    sv('s2_val', (stats[1]||{}).valeur); sv('s2_desc', (stats[1]||{}).desc);
+    sv('s3_val', (stats[2]||{}).valeur); sv('s3_desc', (stats[2]||{}).desc);
+
+    // Onglet 2 — À propos
+    const ap = p.apropos || {};
+    sv('ap_titre', ap.titre); sv('ap_intro', ap.intro);
+    sv('ap_p1', ap.para1);   sv('ap_p2', ap.para2); sv('ap_p3', ap.para3);
+    const apts = ap.apports || [];
+    sv('ap1t',(apts[0]||{}).titre); sv('ap1d',(apts[0]||{}).desc);
+    sv('ap2t',(apts[1]||{}).titre); sv('ap2d',(apts[1]||{}).desc);
+    sv('ap3t',(apts[2]||{}).titre); sv('ap3d',(apts[2]||{}).desc);
+    const vals = ap.values || [];
+    sv('v1t',(vals[0]||{}).titre); sv('v1d',(vals[0]||{}).desc);
+    sv('v2t',(vals[1]||{}).titre); sv('v2d',(vals[1]||{}).desc);
+    sv('v3t',(vals[2]||{}).titre); sv('v3d',(vals[2]||{}).desc);
+
+    // Onglet 3 — Compétences
+    const listC = document.getElementById('listeCompetences');
+    listC.innerHTML = '';
+    (p.competences || []).forEach((c, i) => {
+      const div = document.createElement('div');
+      div.className = 'dyn-item comp-item';
+      div.innerHTML = `
+        <div class="dyn-item-head"><span class="dyn-item-num">Compétence ${i+1}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Sigle</label><input class="ni comp-sigle" value="${esc(c.sigle||'')}" placeholder="WEB · IA"></div>
+          <div class="form-group"><label>Titre *</label><input class="ni comp-titre" value="${esc(c.titre||'')}" placeholder="Développement web"></div>
+          <div class="form-group full"><label>Description</label><textarea class="ni comp-desc" style="min-height:64px" placeholder="Description courte...">${esc(c.description||'')}</textarea></div>
+          <div class="form-group full"><label>Tags</label><input class="ni comp-tags" value="${esc((c.tags||[]).join(', '))}" placeholder="Django, Python..."></div>
+        </div>`;
+      listC.appendChild(div);
+    });
+
+    // Onglet 4 — Expériences
+    const listE = document.getElementById('listeExperiences');
+    listE.innerHTML = '';
+    (p.experiences || []).forEach((e, i) => {
+      const div = document.createElement('div');
+      div.className = 'dyn-item exp-item';
+      div.innerHTML = `
+        <div class="dyn-item-head"><span class="dyn-item-num">Expérience ${i+1}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Période</label><input class="ni exp-periode" value="${esc(e.periode||'')}" placeholder="Jan 2022 - Déc 2024"></div>
+          <div class="form-group"><label>Label / Chip</label><input class="ni exp-label" value="${esc(e.label||'')}" placeholder="DCH3 · IA"></div>
+          <div class="form-group full"><label>Titre du poste *</label><input class="ni exp-titre" value="${esc(e.titre||'')}" placeholder="Coordonnateur des projets"></div>
+          <div class="form-group full"><label>Description courte</label><input class="ni exp-desc" value="${esc(e.description||'')}" placeholder="Coordination de projets..."></div>
+          <div class="form-group full"><label>Bullets (une par ligne)</label><textarea class="ni exp-bullets" style="min-height:120px" placeholder="Bullet 1&#10;Bullet 2">${esc((e.bullets||[]).join('\n'))}</textarea></div>
+        </div>`;
+      listE.appendChild(div);
+    });
+
+    // Onglet 5 — Projets
+    const listP = document.getElementById('listeProjets');
+    listP.innerHTML = '';
+    (p.projets || []).forEach((pr, i) => {
+      const div = document.createElement('div');
+      div.className = 'dyn-item proj-item';
+      div.innerHTML = `
+        <div class="dyn-item-head"><span class="dyn-item-num">Projet ${i+1}${i===0?' (mis en avant)':''}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Sigle</label><input class="ni proj-sigle" value="${esc(pr.sigle||'')}" placeholder="GU · KG · AI"></div>
+          <div class="form-group"><label>Type</label><input class="ni proj-type" value="${esc(pr.type||'')}" placeholder="Projet majeur · App web"></div>
+          <div class="form-group full"><label>Titre *</label><input class="ni proj-titre" value="${esc(pr.titre||'')}" placeholder="Nom du projet"></div>
+          <div class="form-group full"><label>Description</label><textarea class="ni proj-desc" style="min-height:64px" placeholder="Description...">${esc(pr.description||'')}</textarea></div>
+          <div class="form-group full"><label>Impact / Résultat clé</label><input class="ni proj-impact" value="${esc(pr.impact||'')}" placeholder="Ex: 20+ communes accompagnées"></div>
+          <div class="form-group"><label>Tags</label><input class="ni proj-tags" value="${esc((pr.tags||[]).join(', '))}" placeholder="Django, Python..."></div>
+          <div class="form-group"><label>Lien</label><input class="ni proj-lien" value="${esc(pr.lien||'')}" placeholder="https://..."></div>
+        </div>`;
+      listP.appendChild(div);
+    });
+
+    // Onglet 6 — Certifications + Langues + Intérêts
+    const listCf = document.getElementById('listeCertifs');
+    listCf.innerHTML = '';
+    (p.certifications || []).forEach((c, i) => {
+      const div = document.createElement('div');
+      div.className = 'dyn-item certif-item';
+      div.innerHTML = `
+        <div class="dyn-item-head"><span class="dyn-item-num">Certification ${i+1}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Titre *</label><input class="ni certif-titre" value="${esc(c.titre||'')}" placeholder="Marketing numérique"></div>
+          <div class="form-group"><label>Institution</label><input class="ni certif-inst" value="${esc(c.institution||'')}" placeholder="Google, Coursera..."></div>
+        </div>`;
+      listCf.appendChild(div);
+    });
+    sv('f_langues',  (p.langues  || []).join(', '));
+    sv('f_interets', (p.interets || []).join(', '));
+
+    // Onglet 7 — Contact
+    const ct = p.contact || {};
+    sv('ct_titre', ct.titre);
+    sv('ct_desc',  ct.description);
+    sv('ct_loc',   ct.localisation);
+    sv('ct_wa',    ct.whatsapp);
+
+    // Onglet 8 — Publication + Visibilité
+    if (d.template_id)  sv('f_template',   d.template_id);
+    if (d.duree_mois)   sv('f_duree',      String(d.duree_mois));
+    const vis = p.visibilite || {};
+    sc('vis_telephone',     vis.telephone);
+    sc('vis_email',         vis.email);
+    sc('vis_whatsapp',      vis.whatsapp);
+    sc('vis_localisation',  vis.localisation);
+    sc('vis_eyebrow',       vis.eyebrow);
+    sc('vis_stats',         vis.stats);
+    sc('vis_proof_tel',     vis.proof_tel);
+    sc('vis_proof_email',   vis.proof_email);
+    sc('vis_proof_loc',     vis.proof_loc);
+    sc('vis_competences',   vis.competences);
+    sc('vis_experiences',   vis.experiences);
+    sc('vis_projets',       vis.projets);
+    sc('vis_certifications',vis.certifications);
+    sc('vis_langues',       vis.langues);
+    sc('vis_interets',      vis.interets);
+  }
+
+  // Helper HTML escape pour remplirFormulaire
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // Importer le JSON collé et remplir le formulaire
+  function importerJSON() {
+    const raw = document.getElementById('jsonImport').value.trim();
+    const status = document.getElementById('importStatus');
+    if (!raw) { status.textContent = '⚠️ Colle d\'abord un JSON.'; return; }
+
+    let data;
+    try { data = JSON.parse(raw); }
+    catch(err) { status.textContent = '❌ JSON invalide : ' + err.message; toast('JSON invalide — vérifie la syntaxe', 'error'); return; }
+
+    // Ignorer le bloc _NOTICE automatiquement
+    delete data._NOTICE;
+
+    if (!data.prenom || !data.nom || !data.profession) {
+      status.textContent = '❌ Champs obligatoires manquants : prenom, nom, profession';
+      toast('Champs obligatoires manquants : prenom, nom, profession', 'error'); return;
+    }
+    remplirFormulaire(data);
+    fermerImport(); afficherVue('form'); changerOnglet(0);
+    toast('Formulaire rempli à partir du JSON — vérifie puis clique Enregistrer', 'success', '📥');
+  }
+
+  // ── Chargeur SheetJS dynamique (évite le blocage CSP) ───────────
+  let xlsxLoading = false, xlsxCallbacks = [];
+  function chargerXLSX(cb) {
+    if (typeof XLSX !== 'undefined') { cb(); return; }
+    xlsxCallbacks.push(cb);
+    if (xlsxLoading) return;
+    xlsxLoading = true;
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload  = () => { xlsxLoading = false; xlsxCallbacks.forEach(f => f()); xlsxCallbacks = []; };
+    s.onerror = () => { xlsxLoading = false; toast('Impossible de charger la lib Excel — vérifie ta connexion', 'error'); xlsxCallbacks = []; };
+    document.head.appendChild(s);
+  }
+
+  // ── EXCEL : convertit les données en tableau de lignes ──────────
+  function dataToExcelRows(data) {
+    const rows = [];
+    const p = data.profil || {};
+
+    // En-tête principal
+    rows.push(['SECTION', 'CHAMP', 'VALEUR', 'NOTE / AIDE']);
+    rows.push(['', '', '', '']);
+
+    // ── Identité ──
+    rows.push(['══ IDENTITÉ ══', '', '', '']);
+    rows.push(['IDENTITÉ', 'prenom',     data.prenom     || '', '★ Obligatoire']);
+    rows.push(['IDENTITÉ', 'nom',        data.nom        || '', '★ Obligatoire']);
+    rows.push(['IDENTITÉ', 'profession', data.profession || '', '★ Obligatoire — ex: Développeur web & Consultant IT']);
+    rows.push(['IDENTITÉ', 'email',      data.email      || '', '']);
+    rows.push(['IDENTITÉ', 'telephone',  data.telephone  || '', 'ex: +229 01 23 45 67']);
+    rows.push(['IDENTITÉ', 'photo_url',  data.photo_url  || '', 'URL directe vers la photo (https://...)']);
+    rows.push(['', '', '', '']);
+
+    // ── Publication ──
+    rows.push(['══ PUBLICATION ══', '', '', '']);
+    rows.push(['PUBLICATION', 'domaine',     data.domaine     || 'sotchedji.store', '🔒 AUTO si laissé vide']);
+    rows.push(['PUBLICATION', 'abonnement',  data.abonnement  || 'gratuit',         'gratuit | standard | premium']);
+    rows.push(['PUBLICATION', 'template_id', data.template_id || '1',               '1=Classique(navy/or)  2=Moderne(indigo)  3=Élégant(terra)']);
+    rows.push(['', '', '', '']);
+
+    // ── Hero ──
+    const h = p.hero || {};
+    rows.push(['══ HERO ══', '', '', 'Section visible en premier sur la page']);
+    rows.push(['HERO', 'eyebrow',    h.eyebrow    || '', 'Petit texte animé en haut (ex: Applications web, IA...)']);
+    rows.push(['HERO', 'sous_titre', h.sous_titre || '', 'Sous-titre de profession (ex: Développeur · Consultant IT)']);
+    rows.push(['HERO', 'lead',       h.lead       || '', 'Description courte (2-3 phrases)']);
+    const stats = h.stats || [{},{},{}];
+    for (let i = 0; i < 3; i++) {
+      const s = stats[i] || {};
+      rows.push(['HERO', `stat_${i+1}_valeur`, s.valeur || '', `Carte stat ${i+1} — ex: 8 ans | 50+ | Mon Entreprise`]);
+      rows.push(['HERO', `stat_${i+1}_desc`,   s.desc   || '', `Description stat ${i+1} — ex: d'expérience | projets livrés`]);
+    }
+    rows.push(['', '', '', '']);
+
+    // ── À propos ──
+    const ap = p.apropos || {};
+    rows.push(['══ À PROPOS ══', '', '', '']);
+    rows.push(['À PROPOS', 'titre', ap.titre || '', 'Titre de la section (phrase longue)']);
+    rows.push(['À PROPOS', 'intro', ap.intro || '', 'Petite intro à droite du titre']);
+    rows.push(['À PROPOS', 'para1', ap.para1 || '', 'Paragraphe 1 de la biographie']);
+    rows.push(['À PROPOS', 'para2', ap.para2 || '', 'Paragraphe 2']);
+    rows.push(['À PROPOS', 'para3', ap.para3 || '', 'Paragraphe 3 — optionnel, laisser vide si inutile']);
+    const apts = ap.apports || [{},{},{}];
+    for (let i = 0; i < 3; i++) {
+      const a = apts[i] || {};
+      rows.push(['À PROPOS', `apport_${i+1}_titre`, a.titre || '', `Point "ce que j'apporte" ${i+1} — titre`]);
+      rows.push(['À PROPOS', `apport_${i+1}_desc`,  a.desc  || '', `Point "ce que j'apporte" ${i+1} — description`]);
+    }
+    const vals = ap.values || [{},{},{}];
+    for (let i = 0; i < 3; i++) {
+      const v = vals[i] || {};
+      rows.push(['À PROPOS', `value_${i+1}_titre`, v.titre || '', `Carte de valeur ${i+1} — titre`]);
+      rows.push(['À PROPOS', `value_${i+1}_desc`,  v.desc  || '', `Carte de valeur ${i+1} — description`]);
+    }
+    rows.push(['', '', '', '']);
+
+    // ── Compétences ──
+    const comps = p.competences || [];
+    rows.push(['══ COMPÉTENCES ══', '', '', 'Ajouter comp_4_sigle, comp_4_titre... pour plus de compétences']);
+    if (comps.length === 0) {
+      rows.push(['COMPÉTENCES', 'comp_1_sigle',       '', 'ex: WEB | IA | NET']);
+      rows.push(['COMPÉTENCES', 'comp_1_titre',       '', '★ Obligatoire pour la compétence']);
+      rows.push(['COMPÉTENCES', 'comp_1_description', '', 'Description courte']);
+      rows.push(['COMPÉTENCES', 'comp_1_tags',        '', 'Tags séparés par des virgules — ex: Django, Python, JS']);
+    } else {
+      comps.forEach((c, i) => {
+        rows.push(['COMPÉTENCES', `comp_${i+1}_sigle`,       c.sigle       || '', 'ex: WEB | IA | NET']);
+        rows.push(['COMPÉTENCES', `comp_${i+1}_titre`,       c.titre       || '', '★ Obligatoire']);
+        rows.push(['COMPÉTENCES', `comp_${i+1}_description`, c.description || '', '']);
+        rows.push(['COMPÉTENCES', `comp_${i+1}_tags`,        (c.tags||[]).join(', '), 'Virgule comme séparateur']);
+      });
+    }
+    rows.push(['', '', '', '']);
+
+    // ── Expériences ──
+    const exps = p.experiences || [];
+    rows.push(['══ EXPÉRIENCES ══', '', '', 'Ajouter exp_2_periode, exp_2_titre... pour plus d\'expériences']);
+    if (exps.length === 0) {
+      rows.push(['EXPÉRIENCES', 'exp_1_periode',     '', 'ex: Jan 2022 - Présent']);
+      rows.push(['EXPÉRIENCES', 'exp_1_label',       '', 'ex: DCH3 Consulting · IA · Solutions métier']);
+      rows.push(['EXPÉRIENCES', 'exp_1_titre',       '', '★ Titre du poste']);
+      rows.push(['EXPÉRIENCES', 'exp_1_description', '', 'Description courte du poste']);
+      rows.push(['EXPÉRIENCES', 'exp_1_bullets',     '', 'Points clés — séparer par des retours à la ligne (Alt+Entrée dans Excel)']);
+    } else {
+      exps.forEach((e, i) => {
+        rows.push(['EXPÉRIENCES', `exp_${i+1}_periode`,     e.periode     || '', '']);
+        rows.push(['EXPÉRIENCES', `exp_${i+1}_label`,       e.label       || '', '']);
+        rows.push(['EXPÉRIENCES', `exp_${i+1}_titre`,       e.titre       || '', '★ Obligatoire']);
+        rows.push(['EXPÉRIENCES', `exp_${i+1}_description`, e.description || '', '']);
+        rows.push(['EXPÉRIENCES', `exp_${i+1}_bullets`,     (e.bullets||[]).join('\n'), 'Un bullet par ligne']);
+      });
+    }
+    rows.push(['', '', '', '']);
+
+    // ── Projets ──
+    const projs = p.projets || [];
+    rows.push(['══ PROJETS ══', '', '', 'Le 1er projet sera mis en avant (featured). Ajouter proj_3_sigle... pour plus']);
+    if (projs.length === 0) {
+      rows.push(['PROJETS', 'proj_1_sigle',       '', 'ex: GU | KG | AI — 2-3 lettres']);
+      rows.push(['PROJETS', 'proj_1_type',        '', 'ex: Projet majeur | Application web | IA']);
+      rows.push(['PROJETS', 'proj_1_titre',       '', '★ Obligatoire']);
+      rows.push(['PROJETS', 'proj_1_description', '', '']);
+      rows.push(['PROJETS', 'proj_1_impact',      '', 'ex: Impact : 20+ communes accompagnées']);
+      rows.push(['PROJETS', 'proj_1_tags',        '', 'Virgule comme séparateur']);
+      rows.push(['PROJETS', 'proj_1_lien',        '', 'URL optionnelle — ex: https://monprojet.com']);
+    } else {
+      projs.forEach((pr, i) => {
+        rows.push(['PROJETS', `proj_${i+1}_sigle`,       pr.sigle       || '', '']);
+        rows.push(['PROJETS', `proj_${i+1}_type`,        pr.type        || '', '']);
+        rows.push(['PROJETS', `proj_${i+1}_titre`,       pr.titre       || '', '★ Obligatoire']);
+        rows.push(['PROJETS', `proj_${i+1}_description`, pr.description || '', '']);
+        rows.push(['PROJETS', `proj_${i+1}_impact`,      pr.impact      || '', '']);
+        rows.push(['PROJETS', `proj_${i+1}_tags`,        (pr.tags||[]).join(', '), '']);
+        rows.push(['PROJETS', `proj_${i+1}_lien`,        pr.lien        || '', '']);
+      });
+    }
+    rows.push(['', '', '', '']);
+
+    // ── Certifications ──
+    const certs = p.certifications || [];
+    rows.push(['══ CERTIFICATIONS ══', '', '', 'Ajouter certif_3_titre... pour plus']);
+    if (certs.length === 0) {
+      rows.push(['CERTIFICATIONS', 'certif_1_titre',       '', '★ Titre de la formation']);
+      rows.push(['CERTIFICATIONS', 'certif_1_institution', '', 'ex: Google, Coursera, AFD']);
+    } else {
+      certs.forEach((c, i) => {
+        rows.push(['CERTIFICATIONS', `certif_${i+1}_titre`,       c.titre       || '', '']);
+        rows.push(['CERTIFICATIONS', `certif_${i+1}_institution`, c.institution || '', '']);
+      });
+    }
+    rows.push(['', '', '', '']);
+
+    // ── Langues & Intérêts ──
+    rows.push(['══ LANGUES & INTÉRÊTS ══', '', '', '']);
+    rows.push(['LANGUES',   'langues',  (p.langues  ||[]).join(', '), 'Séparées par des virgules — ex: Français, Fon, Anglais']);
+    rows.push(['INTÉRÊTS',  'interets', (p.interets ||[]).join(', '), 'Séparés par des virgules — ex: Voyages, Football']);
+    rows.push(['', '', '', '']);
+
+    // ── Contact ──
+    const ct = p.contact || {};
+    rows.push(['══ CONTACT ══', '', '', '']);
+    rows.push(['CONTACT', 'titre',       ct.titre        || '', 'ex: Un projet à structurer ? Travaillons ensemble.']);
+    rows.push(['CONTACT', 'description', ct.description  || '', 'Texte d\'invitation (2-3 phrases)']);
+    rows.push(['CONTACT', 'localisation',ct.localisation || '', 'ex: Abomey-Calavi, Bénin']);
+    rows.push(['CONTACT', 'whatsapp',    ct.whatsapp     || '', 'Avec indicatif, sans espaces — ex: 2290161003280']);
+    rows.push(['', '', '', '']);
+
+    // ── Visibilité ──
+    const vis = p.visibilite || {};
+    rows.push(['══ VISIBILITÉ ══', '', '', 'true = visible sur la page publique  |  false = masqué']);
+    const visFields = [
+      ['telephone',      'Téléphone dans la section contact'],
+      ['email',          'Email dans la section contact'],
+      ['whatsapp',       'Bouton WhatsApp'],
+      ['localisation',   'Ville / pays'],
+      ['eyebrow',        'Tagline animée (chip en haut du hero)'],
+      ['stats',          'Cartes statistiques flottantes'],
+      ['proof_tel',      'Téléphone dans le hero (proof card)'],
+      ['proof_email',    'Email dans le hero (proof card)'],
+      ['proof_loc',      'Localisation dans le hero (proof card)'],
+      ['competences',    'Section Compétences entière'],
+      ['experiences',    'Section Expériences entière'],
+      ['projets',        'Section Projets entière'],
+      ['certifications', 'Section Certifications entière'],
+      ['langues',        'Section Langues entière'],
+      ['interets',       'Section Intérêts entière'],
+    ];
+    visFields.forEach(([key, note]) => {
+      rows.push(['VISIBILITÉ', key, vis[key] === false ? 'false' : 'true', note]);
+    });
+
+    return rows;
+  }
+
+  // ── EXCEL : parse les lignes en objet data ──────────────────────
+  function excelRowsToData(rows) {
+    const data = {
+      profil: {
+        hero: { stats: [] },
+        apropos: { apports: [], values: [] },
+        competences: [], experiences: [], projets: [],
+        certifications: [], langues: [], interets: [],
+        contact: {}, visibilite: {}
+      }
+    };
+
+    rows.forEach(row => {
+      const sec = String(row[0] || '').trim().toUpperCase()
+        .replace(/[═\s]/g,'').replace('ÀPROPOS','APROPOS').replace('INTÉRÊTS','INTERETS')
+        .replace('VISIBILITÉ','VISIBILITE').replace('EXPÉRIENCES','EXPERIENCES')
+        .replace('COMPÉTENCES','COMPETENCES');
+      const field = String(row[1] || '').trim();
+      const value = String(row[2] !== undefined ? row[2] : '').trim();
+      if (!field || sec.startsWith('══') || sec === '') return;
+
+      switch(sec) {
+        case 'IDENTITÉ': case 'IDENTITE':
+          if      (field==='prenom')     data.prenom     = value;
+          else if (field==='nom')        data.nom        = value;
+          else if (field==='profession') data.profession = value;
+          else if (field==='email')      data.email      = value;
+          else if (field==='telephone')  data.telephone  = value;
+          else if (field==='photo_url')  data.photo_url  = value;
+          break;
+        case 'PUBLICATION':
+          if      (field==='domaine')     data.domaine     = value;
+          else if (field==='abonnement')  data.abonnement  = value;
+          else if (field==='template_id') data.template_id = value;
+          break;
+        case 'HERO': {
+          if      (field==='eyebrow')    data.profil.hero.eyebrow    = value;
+          else if (field==='sous_titre') data.profil.hero.sous_titre = value;
+          else if (field==='lead')       data.profil.hero.lead       = value;
+          else {
+            const m = field.match(/^stat_(\d+)_(valeur|desc)$/);
+            if (m) {
+              const idx = parseInt(m[1])-1;
+              while (data.profil.hero.stats.length <= idx) data.profil.hero.stats.push({});
+              data.profil.hero.stats[idx][m[2]] = value;
+            }
+          }
+          break;
+        }
+        case 'APROPOS': {
+          if (['titre','intro','para1','para2','para3'].includes(field)) { data.profil.apropos[field] = value; break; }
+          let m = field.match(/^apport_(\d+)_(titre|desc)$/);
+          if (m) { const i=parseInt(m[1])-1; while(data.profil.apropos.apports.length<=i) data.profil.apropos.apports.push({}); data.profil.apropos.apports[i][m[2]]=value; break; }
+          m = field.match(/^value_(\d+)_(titre|desc)$/);
+          if (m) { const i=parseInt(m[1])-1; while(data.profil.apropos.values.length<=i) data.profil.apropos.values.push({}); data.profil.apropos.values[i][m[2]]=value; }
+          break;
+        }
+        case 'COMPETENCES': {
+          const m = field.match(/^comp_(\d+)_(sigle|titre|description|tags)$/);
+          if (m) {
+            const i=parseInt(m[1])-1;
+            while(data.profil.competences.length<=i) data.profil.competences.push({});
+            if (m[2]==='tags') data.profil.competences[i].tags = value.split(',').map(t=>t.trim()).filter(Boolean);
+            else data.profil.competences[i][m[2]] = value;
+          }
+          break;
+        }
+        case 'EXPERIENCES': {
+          const m = field.match(/^exp_(\d+)_(periode|label|titre|description|bullets)$/);
+          if (m) {
+            const i=parseInt(m[1])-1;
+            while(data.profil.experiences.length<=i) data.profil.experiences.push({});
+            if (m[2]==='bullets') data.profil.experiences[i].bullets = value.split('\n').map(b=>b.trim()).filter(Boolean);
+            else data.profil.experiences[i][m[2]] = value;
+          }
+          break;
+        }
+        case 'PROJETS': {
+          const m = field.match(/^proj_(\d+)_(sigle|type|titre|description|impact|tags|lien)$/);
+          if (m) {
+            const i=parseInt(m[1])-1;
+            while(data.profil.projets.length<=i) data.profil.projets.push({});
+            if (m[2]==='tags') data.profil.projets[i].tags = value.split(',').map(t=>t.trim()).filter(Boolean);
+            else data.profil.projets[i][m[2]] = value;
+          }
+          break;
+        }
+        case 'CERTIFICATIONS': {
+          const m = field.match(/^certif_(\d+)_(titre|institution)$/);
+          if (m) {
+            const i=parseInt(m[1])-1;
+            while(data.profil.certifications.length<=i) data.profil.certifications.push({});
+            data.profil.certifications[i][m[2]] = value;
+          }
+          break;
+        }
+        case 'LANGUES':
+          if (field==='langues')  data.profil.langues  = value.split(',').map(l=>l.trim()).filter(Boolean);
+          break;
+        case 'INTERETS':
+          if (field==='interets') data.profil.interets = value.split(',').map(i=>i.trim()).filter(Boolean);
+          break;
+        case 'CONTACT':
+          if      (field==='titre')        data.profil.contact.titre        = value;
+          else if (field==='description')  data.profil.contact.description  = value;
+          else if (field==='localisation') data.profil.contact.localisation = value;
+          else if (field==='whatsapp')     data.profil.contact.whatsapp     = value;
+          break;
+        case 'VISIBILITE':
+          data.profil.visibilite[field] = (value.toLowerCase() !== 'false');
+          break;
+      }
+    });
+    return data;
+  }
+
+  // ── Helper : écrire et télécharger un workbook XLSX ─────────────
+  function _xlsxDownload(wb, filename) {
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'binary'});
+    const buf = new ArrayBuffer(wbout.length);
+    const view = new Uint8Array(buf);
+    for (let i = 0; i < wbout.length; i++) view[i] = wbout.charCodeAt(i) & 0xFF;
+    const blob = new Blob([buf], {type:'application/octet-stream'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Télécharger le template Excel vierge ────────────────────────
+  function telechargerTemplateExcel() {
+    chargerXLSX(() => {
+      const tplData = getTemplateJSON();
+      delete tplData._NOTICE;
+      const rows  = dataToExcelRows(tplData);
+      const wb    = XLSX.utils.book_new();
+      const ws    = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{wch:20},{wch:28},{wch:55},{wch:55}];
+      XLSX.utils.book_append_sheet(wb, ws, 'Client');
+      const aide = [
+        ['AIDE — NE PAS MODIFIER CETTE FEUILLE'],[''],
+        ['1. Va dans l\'onglet "Client"'],
+        ['2. Modifie uniquement la colonne C (VALEUR)'],
+        ['3. Ne change PAS les colonnes A, B, D'],
+        ['4. Ajoute des lignes comp_4_sigle, exp_2_periode... pour plus d\'entrées'],[''],
+        ['CHAMPS AUTO (ne pas remplir) :'],
+        ['id','','Généré automatiquement'],
+        ['sous_domaine','','Généré d\'après le prénom'],
+        ['repo_github','','Généré d\'après le prénom'],
+        ['statut','','Géré par le système'],
+        ['date_creation','','Générée automatiquement'],
+      ];
+      const wsAide = XLSX.utils.aoa_to_sheet(aide);
+      wsAide['!cols'] = [{wch:25},{wch:20},{wch:40}];
+      XLSX.utils.book_append_sheet(wb, wsAide, 'Aide');
+      _xlsxDownload(wb, 'portfoliohub_client_template.xlsx');
+      toast('Template Excel téléchargé !', 'success', '📊');
+    });
+  }
+
+  // ── Export Excel d'un client existant ───────────────────────────
+  function exporterClientExcel(clientId) {
+    const c = allClients.find(x => x.id === clientId);
+    if (!c) { toast('Client introuvable', 'error'); return; }
+    chargerXLSX(() => {
+      const data = {
+        prenom: c.prenom, nom: c.nom, email: c.email,
+        telephone: c.telephone, profession: c.profession,
+        photo_url: c.photo_url, template_id: c.template_id,
+        domaine: (c.sous_domaine||'').split('.').slice(1).join('.') || 'sotchedji.store',
+        abonnement: c.type_abonnement || 'gratuit',
+        profil: c.profil || {}
+      };
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(dataToExcelRows(data));
+      ws['!cols'] = [{wch:20},{wch:28},{wch:55},{wch:55}];
+      XLSX.utils.book_append_sheet(wb, ws, 'Client');
+      _xlsxDownload(wb, `${c.prenom}_${c.nom}_portfolio.xlsx`.replace(/\s+/g,'_').toLowerCase());
+      toast(`Excel exporté pour ${c.prenom} ${c.nom}`, 'success', '📊');
+    });
+  }
+
+  // ── Gestion upload fichier Excel ─────────────────────────────────
+  function onFileChosen(input) {
+    if (!input.files || !input.files[0]) return;
+    const name = input.files[0].name;
+    const chosen = document.getElementById('fileChosen');
+    document.getElementById('fileChosenName').textContent = name;
+    chosen.classList.add('show');
+    document.getElementById('excelImportStatus').textContent = '';
+  }
+
+  // ── Importer depuis un fichier Excel ────────────────────────────
+  function importerExcel() {
+    const input  = document.getElementById('excelFile');
+    const status = document.getElementById('excelImportStatus');
+    if (!input.files || !input.files[0]) { status.textContent = '⚠️ Aucun fichier sélectionné.'; return; }
+    chargerXLSX(() => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const wb       = XLSX.read(e.target.result, {type:'binary'});
+          const sheet    = wb.SheetNames.includes('Client') ? 'Client' : wb.SheetNames[0];
+          const rows     = XLSX.utils.sheet_to_json(wb.Sheets[sheet], {header:1, defval:''});
+          const data     = excelRowsToData(rows.slice(1));
+          if (!data.prenom || !data.nom || !data.profession) {
+            status.textContent = '❌ Champs obligatoires manquants : prenom, nom, profession (colonne C)';
+            toast('Champs obligatoires manquants dans l\'Excel', 'error'); return;
+          }
+          remplirFormulaire(data);
+          fermerImport(); afficherVue('form'); changerOnglet(0);
+          toast('Formulaire rempli depuis Excel — vérifie puis clique Enregistrer', 'success', '📊');
+        } catch(err) {
+          status.textContent = '❌ Erreur : ' + err.message;
+          toast('Erreur lors de la lecture du fichier Excel', 'error');
+        }
+      };
+      reader.readAsBinaryString(input.files[0]);
+    });
+  }
+
+  // ── Init ──
+  Object.assign(window, {
+    afficherVue, changerOnglet, chargerTemplates, chargerClients, enregistrerClient,
+    deployer, mettreAJour, ouvrirModalTemplate, selTpl, appliquerTemplate, fermerModal,
+    ajouterCompetence, ajouterExperience, ajouterProjet, ajouterCertif, resetForm,
+    renderTemplatesView, changerTplTab, ouvrirEditTemplate, fermerEditTemplate,
+    sauvegarderTemplateEdit, supprimerTemplateEdit, chargerCSSExemple,
+    previewTemplatePleinEcran, previewTemplateInline, previewTemplateId,
+    ouvrirImport, fermerImport, switchImportTab, copierTemplate, afficherTemplate,
+    importerJSON, chargerXLSX, telechargerTemplateExcel, exporterClientExcel,
+    onFileChosen
+  });
+
+  chargerTemplates();
+  setTimeout(chargerClients, 600);
+</script>
+</body>
+</html>
