@@ -2884,30 +2884,59 @@
     ctx.closePath();
   }
 
+  function _toRawUrl(url) {
+    if (!url) return url;
+    const m = url.match(/https?:\/\/([^.]+)\.github\.io\/([^/?#]+)\/(.+)/);
+    if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/main/${m[3]}`;
+    return url;
+  }
+
   async function _loadImg(src) {
-    // Passer par fetch+blob pour éviter les problèmes de cache CORS (canvas taint)
+    // Stratégie 1 : fetch → blob URL (contourne le cache navigateur sans CORS)
     try {
       const bust = src + (src.includes('?') ? '&' : '?') + '_cb=' + Date.now();
-      const resp  = await fetch(bust, { mode: 'cors' });
-      if (!resp.ok) throw new Error('fetch failed');
-      const blob  = await resp.blob();
-      const burl  = URL.createObjectURL(blob);
+      const resp = await fetch(bust, { mode: 'cors', cache: 'no-store', credentials: 'omit' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const blob = await resp.blob();
+      if (!blob.size) throw new Error('blob vide');
+      const burl = URL.createObjectURL(blob);
+      const img = await new Promise((res, rej) => {
+        const el = new Image();
+        el.onload  = () => res(el);
+        el.onerror = () => rej(new Error('decode échoué'));
+        el.src = burl;
+      });
+      URL.revokeObjectURL(burl);
+      if (!img.naturalWidth) throw new Error('naturalWidth=0');
+      return img;
+    } catch(e1) { console.warn('[photo] fetch+blob:', e1.message); }
+
+    // Stratégie 2 : img crossOrigin='anonymous' + cache buster
+    try {
       return await new Promise((res, rej) => {
-        const img = new Image();
-        img.onload  = () => { URL.revokeObjectURL(burl); res(img); };
-        img.onerror = () => { URL.revokeObjectURL(burl); rej(); };
-        img.src = burl;
+        const el = new Image();
+        el.crossOrigin = 'anonymous';
+        el.onload  = () => { if (el.naturalWidth) res(el); else rej(new Error('w=0')); };
+        el.onerror = () => rej(new Error('direct échoué'));
+        el.src = src + (src.includes('?') ? '&' : '?') + '_d=' + Date.now();
       });
-    } catch {
-      // Fallback direct si fetch échoue (CORS non dispo)
-      return new Promise((res, rej) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload  = () => res(img);
-        img.onerror = rej;
-        img.src = src;
-      });
+    } catch(e2) { console.warn('[photo] direct:', e2.message); }
+
+    // Stratégie 3 : raw.githubusercontent.com si URL github.io (double tentative)
+    const raw = _toRawUrl(src);
+    if (raw !== src) {
+      try {
+        return await new Promise((res, rej) => {
+          const el = new Image();
+          el.crossOrigin = 'anonymous';
+          el.onload  = () => { if (el.naturalWidth) res(el); else rej(); };
+          el.onerror = rej;
+          el.src = raw + '?_r=' + Date.now();
+        });
+      } catch(e3) { console.warn('[photo] raw fallback:', e3.message || e3); }
     }
+
+    return null;
   }
 
   async function exporterCarteClient(id) {
@@ -2980,17 +3009,27 @@
     const siteWeb    = c.sous_domaine ? 'https://'+c.sous_domaine : (c.domaine ? 'https://'+c.domaine : 'sotchedji.store');
 
     // ── Photo (seulement si le toggle "Photo sur la carte" est activé) ──
-    function toRawUrl(url) {
-      if (!url) return url;
-      const m = url.match(/https?:\/\/([^.]+)\.github\.io\/([^/?#]+)\/(.+)/);
-      if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/main/${m[3]}`;
-      return url;
-    }
     const showPhotoOnCard = (profil.visibilite?.photo_carte !== false);
     let photoImg = null;
     if (showPhotoOnCard && c.photo_url) {
-      const photoSrc = toRawUrl(c.photo_url);
-      try { photoImg = await Promise.race([_loadImg(photoSrc), new Promise((_,r)=>setTimeout(r,8000))]); } catch {}
+      // Essayer d'abord avec l'URL raw GitHub (CORS garanti), sinon URL d'origine
+      const rawSrc  = _toRawUrl(c.photo_url);
+      const origSrc = c.photo_url;
+      try {
+        photoImg = await Promise.race([
+          _loadImg(rawSrc),
+          new Promise((_,r) => setTimeout(r, 10000))
+        ]);
+      } catch {}
+      // Seconde tentative avec URL originale si raw a échoué
+      if (!photoImg && origSrc !== rawSrc) {
+        try {
+          photoImg = await Promise.race([
+            _loadImg(origSrc),
+            new Promise((_,r) => setTimeout(r, 6000))
+          ]);
+        } catch {}
+      }
     }
 
     // Couleur sombre du panel gauche paysage
@@ -3117,6 +3156,10 @@
     p.fillStyle = withAlpha(COL.accent, 0.65); p.font = `bold 8px ${tplFont}`;
     p.fillText('sotchedji.store', PW/2, pY);
 
+    // Bordure fine carte portrait
+    p.strokeStyle = withAlpha(COL.primary, 0.12); p.lineWidth = 2;
+    _rrPath(p, 1, 1, PW-2, PH-2, 22); p.stroke();
+
     // ══════════════════════════════════════════
     // CARTE PAYSAGE (700 × 420)
     // ══════════════════════════════════════════
@@ -3147,8 +3190,9 @@
     lv.fillStyle = '#ffffff'; lv.font = `bold 14.5px ${tplFont}`; lv.textAlign = 'center';
     lv.fillText(_truncate(lv, nomComplet, LP-22), lax, lay+lar+26);
 
-    // Profession
-    lv.fillStyle = withAlpha(COL.accent, 0.9); lv.font = `10px ${tplFont}`;
+    // Profession — toujours lisible sur fond sombre (blanc si accent trop sombre)
+    const profColLv = luminance(COL.accent) > 90 ? withAlpha(COL.accent, 0.95) : 'rgba(255,255,255,0.80)';
+    lv.fillStyle = profColLv; lv.font = `10px ${tplFont}`;
     lv.fillText(_truncate(lv, c.profession||'', LP-24), lax, lay+lar+43);
 
     // Séparateur panel gauche
@@ -3177,41 +3221,64 @@
     lv.fillText('PortfolioHub · DS Services', lax, LH-14);
 
     // ── Panel droit ──
-    const RX = LP+20, RW = LW-LP-28;
+    const RX = LP+22, RW = LW-LP-34;
 
-    // Description en haut
-    let ry = 28;
-    lv.font = `bold 7.5px ${tplFont}`; lv.fillStyle = withAlpha(COL.muted, 0.7);
-    lv.textAlign = 'left'; lv.fillText('À PROPOS', RX, ry); ry += 14;
-    lv.font = `10px ${tplFont}`; lv.fillStyle = onBgMuted; lv.textAlign = 'left';
-    _wrapText(lv, desc, RW, 2).forEach(line => { lv.fillText(line, RX, ry); ry += 15; });
+    let ry = 24;
+
+    // Nom + profession en haut du panneau droit
+    lv.font = `bold 17px ${tplFont}`; lv.fillStyle = onBg; lv.textAlign = 'left';
+    lv.fillText(_truncate(lv, nomComplet, RW), RX, ry); ry += 20;
+    const profColR = luminance(COL.accent) > 80 ? COL.accent : COL.primary;
+    lv.font = `italic 10.5px ${tplFont}`; lv.fillStyle = profColR;
+    lv.fillText(_truncate(lv, c.profession||'', RW), RX, ry); ry += 14;
 
     // Séparateur
-    ry += 6;
+    lv.strokeStyle = withAlpha(COL.primary, 0.18); lv.lineWidth = 0.8;
+    lv.beginPath(); lv.moveTo(RX, ry); lv.lineTo(RX+RW, ry); lv.stroke(); ry += 13;
+
+    // À PROPOS
+    lv.font = `bold 7px ${tplFont}`; lv.fillStyle = withAlpha(COL.muted, 0.65); lv.textAlign = 'left';
+    lv.fillText('À PROPOS', RX, ry); ry += 12;
+    lv.font = `10px ${tplFont}`; lv.fillStyle = onBgMuted; lv.textAlign = 'left';
+    _wrapText(lv, desc, RW, 2).forEach(line => { lv.fillText(line, RX, ry); ry += 14; });
+
+    // Séparateur
+    ry += 5;
     lv.strokeStyle = withAlpha(COL.primary, 0.14); lv.lineWidth = 0.8;
     lv.beginPath(); lv.moveTo(RX, ry); lv.lineTo(RX+RW, ry); lv.stroke(); ry += 12;
 
-    // Label contact
-    lv.font = `bold 7.5px ${tplFont}`; lv.fillStyle = withAlpha(COL.muted, 0.7); lv.textAlign = 'left';
+    // Label coordonnées
+    lv.font = `bold 7px ${tplFont}`; lv.fillStyle = withAlpha(COL.muted, 0.65); lv.textAlign = 'left';
     lv.fillText('COORDONNÉES', RX, ry); ry += 12;
 
-    // Rows contact (compacts)
-    const rH = 34, rG = 5;
+    // Calcul hauteur dispo pour les rows (footer = 28px en bas)
+    const rFootH = 28;
+    const rAvail = LH - ry - rFootH;
+    const rRows  = contactRows.length;
+    const rH = Math.min(36, Math.max(28, Math.floor((rAvail - (rRows-1)*5) / rRows)));
+    const rG = Math.min(6, Math.floor((rAvail - rRows*rH) / Math.max(1, rRows-1)));
+
     contactRows.forEach(({ic, val}) => {
       lv.fillStyle = rowBg; _rrPath(lv, RX, ry, RW, rH, 8); lv.fill();
       lv.strokeStyle = rowStroke; lv.lineWidth = 0.7; _rrPath(lv, RX, ry, RW, rH, 8); lv.stroke();
+      // Icône accent
       lv.fillStyle = COL.accent; lv.font = `bold 12px ${tplFont}`; lv.textAlign = 'left';
-      lv.fillText(ic, RX+10, ry+rH/2+5);
-      lv.fillStyle = onBg; lv.font = `10.5px ${tplFont}`;
-      lv.fillText(_truncate(lv, val, RW-46), RX+30, ry+rH/2+5);
+      lv.fillText(ic, RX+10, ry+rH/2+4.5);
+      // Valeur
+      lv.fillStyle = onBg; lv.font = `10px ${tplFont}`;
+      lv.fillText(_truncate(lv, val, RW-46), RX+30, ry+rH/2+4.5);
       ry += rH+rG;
     });
 
-    // Footer paysage (droit)
-    lv.strokeStyle = withAlpha(COL.primary, 0.13); lv.lineWidth = 0.8;
-    lv.beginPath(); lv.moveTo(RX, LH-30); lv.lineTo(RX+RW, LH-30); lv.stroke();
-    lv.fillStyle = onBgMuted; lv.font = `8px ${tplFont}`; lv.textAlign = 'center';
-    lv.fillText('sotchedji.store', RX+RW/2, LH-12);
+    // Footer paysage (droit) — collé au bas
+    lv.strokeStyle = withAlpha(COL.primary, 0.12); lv.lineWidth = 0.8;
+    lv.beginPath(); lv.moveTo(RX, LH-rFootH+4); lv.lineTo(RX+RW, LH-rFootH+4); lv.stroke();
+    lv.fillStyle = withAlpha(COL.accent, 0.6); lv.font = `bold 8px ${tplFont}`; lv.textAlign = 'center';
+    lv.fillText('sotchedji.store', RX+RW/2, LH-10);
+
+    // Bordure fine carte paysage
+    lv.strokeStyle = withAlpha(COL.primary, 0.12); lv.lineWidth = 2;
+    _rrPath(lv, 1, 1, LW-2, LH-2, 22); lv.stroke();
 
     // ── Téléchargement des 2 cartes ──
     _dlCanvas(cp.canvas, `carte_portrait_${c.prenom}_${c.nom}`);
@@ -3223,7 +3290,7 @@
     const canvas=document.createElement('canvas');
     canvas.width=w*sc; canvas.height=h*sc;
     const ctx=canvas.getContext('2d'); ctx.scale(sc,sc);
-    _rrPath(ctx,0,0,w,h,18); ctx.clip();
+    _rrPath(ctx,0,0,w,h,22); ctx.clip();
     return {canvas,ctx};
   }
   function _cercle(ctx,x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);}
