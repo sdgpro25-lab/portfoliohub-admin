@@ -89,40 +89,52 @@ function _toRawUrl(url) {
 }
 
 async function _loadImg(src) {
-  // Convertit d'abord en raw.githubusercontent.com si c'est une URL github.io
-  const raw = _toRawUrl(src);
-  // Essaie raw en premier, puis l'URL d'origine si différente
-  const candidates = (raw !== src) ? [raw, src] : [raw];
+  const clean = (src || '').trim();
+  if (!clean) return null;
+  const raw  = _toRawUrl(clean);
+  const urls = raw !== clean ? [raw, clean] : [clean];
 
-  for (const url of candidates) {
+  // ── Étape 1 : img.crossOrigin='anonymous' (méthode la plus directe) ──
+  for (const url of urls) {
     try {
-      const bust = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
-      const resp  = await fetch(bust, { mode: 'cors', cache: 'no-cache', credentials: 'omit' });
-      if (!resp.ok) { console.warn('[photo] HTTP', resp.status, url); continue; }
-      const blob  = await resp.blob();
-      if (!blob.size) { console.warn('[photo] blob vide', url); continue; }
-
-      // → data URL (base64) : permanent, aucun problème CORS sur canvas
-      const dataUrl = await new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload  = () => res(reader.result);
-        reader.onerror = () => rej(new Error('FileReader échoué'));
-        reader.readAsDataURL(blob);
-      });
-
       const img = await new Promise((res, rej) => {
         const el = new Image();
-        el.onload  = () => el.naturalWidth ? res(el) : rej(new Error('naturalWidth=0'));
-        el.onerror = () => rej(new Error('img.src échoué'));
-        el.src = dataUrl;
+        el.crossOrigin = 'anonymous';
+        el.onload  = () => el.naturalWidth > 0 ? res(el) : rej(new Error('w=0'));
+        el.onerror = () => rej(new Error('onerror'));
+        el.src = url + (url.includes('?') ? '&' : '?') + '_c=' + Date.now();
       });
-
-      console.log('[photo] ✅ chargée depuis', url);
+      console.log('[photo] ✅ crossOrigin OK:', url);
       return img;
-    } catch(e) { console.warn('[photo] ❌', url, ':', e.message); }
+    } catch(e) { console.warn('[photo] crossOrigin ❌', url, e.message); }
   }
 
-  console.error('[photo] toutes les tentatives ont échoué pour', src);
+  // ── Étape 2 : fetch → FileReader → dataURL (contourne le cache) ──
+  for (const url of urls) {
+    try {
+      const resp = await fetch(url + (url.includes('?') ? '&' : '?') + '_f=' + Date.now(),
+        { mode: 'cors', cache: 'no-store', credentials: 'omit' });
+      if (!resp.ok) continue;
+      const blob = await resp.blob();
+      if (!blob.size) continue;
+      const dataUrl = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload  = () => res(r.result);
+        r.onerror = rej;
+        r.readAsDataURL(blob);
+      });
+      const img = await new Promise((res, rej) => {
+        const el = new Image();
+        el.onload  = () => el.naturalWidth > 0 ? res(el) : rej();
+        el.onerror = rej;
+        el.src = dataUrl;
+      });
+      console.log('[photo] ✅ fetch+dataURL OK:', url);
+      return img;
+    } catch(e) { console.warn('[photo] fetch ❌', url, e.message); }
+  }
+
+  console.error('[photo] ÉCHEC TOTAL pour:', src);
   return null;
 }
 
