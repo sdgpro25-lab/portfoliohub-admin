@@ -722,7 +722,8 @@
                   <span style="background:var(--bg);border:1.5px solid var(--border);border-left:none;padding:10px 11px;font-size:.82rem;color:var(--muted);border-radius:0 8px 8px 0;white-space:nowrap">.sotchedji.store</span>
                   <span id="slugStatus" style="font-size:.75rem;font-weight:700;white-space:nowrap"></span>
                 </div>
-                <div style="font-size:.72rem;color:var(--muted);margin-top:5px">Laisse vide pour utiliser le prénom automatiquement · Ex: <em>wilfried</em> → wilfried.sotchedji.store</div>
+                <div id="slugHint" style="font-size:.72rem;color:var(--muted);margin-top:5px">Laisse vide pour utiliser le prénom automatiquement · Ex: <em>wilfried</em> → wilfried.sotchedji.store</div>
+                <div id="slugLockMsg" style="display:none;font-size:.75rem;color:#b45309;background:#fef3c7;border-radius:7px;padding:6px 10px;margin-top:5px;font-weight:600">🔒 Sous-domaine verrouillé — le portfolio est déjà en ligne. Contactez le support pour le modifier.</div>
               </div>
               <div class="form-group"><label>Domaine de base</label><select id="f_domaine" class="ni"><option value="sotchedji.store">sotchedji.store</option></select></div>
               <div class="form-group"><label>Plan d'abonnement</label><select id="f_abonnement" class="ni"><option value="gratuit">🆓 Gratuit</option><option value="standard">⭐ Standard</option><option value="premium">💎 Premium</option></select></div>
@@ -2184,8 +2185,14 @@
     // Onglet 8 — Publication + Visibilité
     if (d.template_id)  sv('f_template',   d.template_id);
     if (d.duree_mois)   sv('f_duree',      String(d.duree_mois));
-    // Sous-domaine slug (extrait de sous_domaine existant)
+    // Sous-domaine slug — verrouillé si déjà en ligne
     if (d.sous_domaine) { sv('f_slug', d.sous_domaine.split('.')[0]); checkSlugDispo(); }
+    const isLive = d.statut === 'en_ligne';
+    const slugEl = document.getElementById('f_slug');
+    if (slugEl) { slugEl.disabled = isLive; slugEl.style.opacity = isLive ? '.5' : '1'; slugEl.style.cursor = isLive ? 'not-allowed' : ''; }
+    document.getElementById('slugLockMsg').style.display = isLive ? 'block' : 'none';
+    document.getElementById('slugHint').style.display    = isLive ? 'none'  : 'block';
+    document.getElementById('slugStatus').style.display  = isLive ? 'none'  : '';
     const vis = p.visibilite || {};
     sc('vis_telephone',     vis.telephone);
     sc('vis_email',         vis.email);
