@@ -140,10 +140,12 @@ function editerClient(id) {
     telephone:   c.telephone,
     profession:  c.profession,
     photo_url:   c.photo_url,
+    sous_domaine: c.sous_domaine,
     domaine:     (c.sous_domaine||'').split('.').slice(1).join('.') || 'sotchedji.store',
     abonnement:  c.type_abonnement,
     template_id: c.template_id,
     duree_mois:  '12',
+    statut:      c.statut,
     profil:      c.profil || {}
   });
   // Mettre l'ID dans le champ caché
@@ -264,7 +266,25 @@ function remplirFormulaire(d) {
     listP.appendChild(div);
   });
 
-  // Onglet 6 — Certifications + Langues + Intérêts
+  // Onglet 6 — Formations + Certifications + Langues + Intérêts
+  const listFm = document.getElementById('listeFormations');
+  if (listFm) {
+    listFm.innerHTML = '';
+    (p.formations || []).forEach((f, i) => {
+      const div = document.createElement('div');
+      div.className = 'dyn-item form-item';
+      div.innerHTML = `
+        <div class="dyn-item-head"><span class="dyn-item-num">Formation ${i+1}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Année</label><input class="ni form-annee" value="${esc(f.annee||'')}" placeholder="2022"></div>
+          <div class="form-group"><label>Diplôme / Titre *</label><input class="ni form-titre" value="${esc(f.titre||'')}" placeholder="Licence en Informatique"></div>
+          <div class="form-group"><label>École / Université</label><input class="ni form-inst" value="${esc(f.institution||'')}" placeholder="Université d'Abomey-Calavi"></div>
+          <div class="form-group"><label>Lieu</label><input class="ni form-lieu" value="${esc(f.lieu||'')}" placeholder="Cotonou, Bénin"></div>
+        </div>`;
+      listFm.appendChild(div);
+    });
+  }
+
   const listCf = document.getElementById('listeCertifs');
   listCf.innerHTML = '';
   (p.certifications || []).forEach((c, i) => {
@@ -312,6 +332,7 @@ function remplirFormulaire(d) {
   sc('vis_competences',   vis.competences);
   sc('vis_experiences',   vis.experiences);
   sc('vis_projets',       vis.projets);
+  sc('vis_formations',    vis.formations);
   sc('vis_certifications',vis.certifications);
   sc('vis_langues',       vis.langues);
   sc('vis_interets',      vis.interets);
@@ -348,6 +369,13 @@ function lireFormulaire() {
     lien:  el.querySelector('.proj-lien').value.trim()
   })).filter(p => p.titre);
 
+  const formations = [...document.querySelectorAll('.form-item')].map(el => ({
+    annee:       el.querySelector('.form-annee').value.trim(),
+    titre:       el.querySelector('.form-titre').value.trim(),
+    institution: el.querySelector('.form-inst').value.trim(),
+    lieu:        el.querySelector('.form-lieu').value.trim()
+  })).filter(f => f.titre);
+
   const certifications = [...document.querySelectorAll('.certif-item')].map(el => ({
     titre: el.querySelector('.certif-titre').value.trim(),
     institution: el.querySelector('.certif-inst').value.trim()
@@ -381,7 +409,7 @@ function lireFormulaire() {
           {titre:g('v1t'),desc:g('v1d')},{titre:g('v2t'),desc:g('v2d')},{titre:g('v3t'),desc:g('v3d')}
         ].filter(v=>v.titre)
       },
-      competences, experiences, projets, certifications,
+      competences, experiences, projets, formations, certifications,
       langues:  g('f_langues').split(',').map(l=>l.trim()).filter(Boolean),
       interets: g('f_interets').split(',').map(i=>i.trim()).filter(Boolean),
       contact: {
@@ -401,6 +429,7 @@ function lireFormulaire() {
         competences:    chk('vis_competences'),
         experiences:    chk('vis_experiences'),
         projets:        chk('vis_projets'),
+        formations:     chk('vis_formations'),
         certifications: chk('vis_certifications'),
         langues:        chk('vis_langues'),
         interets:       chk('vis_interets'),
@@ -420,9 +449,10 @@ function resetForm() {
    'ct_titre','ct_desc','ct_loc','ct_wa','f_langues','f_interets'
   ].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   const fdur = document.getElementById('f_duree'); if(fdur) fdur.value='12';
-  ['listeCompetences','listeExperiences','listeProjets','listeCertifs'].forEach(id => {
+  ['listeCompetences','listeExperiences','listeProjets','listeFormations','listeCertifs'].forEach(id => {
     const el = document.getElementById(id); if(el) el.innerHTML='';
   });
+  _updatePortfolioLink('', 'sotchedji.store');
   // Remettre tous les toggles à ON
   document.querySelectorAll('[id^="vis_"]').forEach(el => el.checked = true);
   const slugSt = document.getElementById('slugStatus'); if(slugSt) slugSt.textContent = '';
@@ -728,6 +758,22 @@ function ajouterProjet() {
   list.appendChild(div);
 }
 
+function ajouterFormation() {
+  const list = document.getElementById('listeFormations');
+  const n = list.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'dyn-item form-item';
+  div.innerHTML = `
+    <div class="dyn-item-head"><span class="dyn-item-num">Formation ${n}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label>Année</label><input class="ni form-annee" placeholder="2022"></div>
+      <div class="form-group"><label>Diplôme / Titre *</label><input class="ni form-titre" placeholder="Licence en Informatique"></div>
+      <div class="form-group"><label>École / Université</label><input class="ni form-inst" placeholder="Université d'Abomey-Calavi"></div>
+      <div class="form-group"><label>Lieu</label><input class="ni form-lieu" placeholder="Cotonou, Bénin"></div>
+    </div>`;
+  list.appendChild(div);
+}
+
 function ajouterCertif() {
   const list = document.getElementById('listeCertifs');
   const n = list.children.length + 1;
@@ -736,7 +782,7 @@ function ajouterCertif() {
   div.innerHTML = `
     <div class="dyn-item-head"><span class="dyn-item-num">Certification ${n}</span><button class="dyn-remove" onclick="this.closest('.dyn-item').remove()">✕</button></div>
     <div class="form-grid">
-      <div class="form-group"><label>Titre de la formation *</label><input class="ni certif-titre" placeholder="Marketing numérique"></div>
+      <div class="form-group"><label>Titre *</label><input class="ni certif-titre" placeholder="Marketing numérique"></div>
       <div class="form-group"><label>Institution</label><input class="ni certif-inst" placeholder="Google, Coursera, AFD..."></div>
     </div>`;
   list.appendChild(div);

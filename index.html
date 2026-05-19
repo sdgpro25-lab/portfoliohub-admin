@@ -305,8 +305,20 @@
       <!-- ONGLET 6 : CERTIFICATIONS & LANGUES -->
       <div class="tab-panel" id="tab6">
         <div class="card">
-          <div class="card-head"><div class="card-title">🎓 Certifications, Langues & Intérêts</div></div>
+          <div class="card-head"><div class="card-title">🎓 Formations & Diplômes</div></div>
           <div class="card-body">
+            <div class="vis-hint">👁️ Tu peux <strong>masquer toute cette section</strong> → onglet <strong>⚙️ Publication</strong>. Indépendant des certifications.</div>
+            <p class="card-sub">Ton parcours académique : licences, masters, BTS, etc. Chaque entrée a une année, un titre, une école et un lieu.</p>
+            <div class="dynamic-list" id="listeFormations"></div>
+            <button class="add-btn" onclick="ajouterFormation()">+ Ajouter une formation</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-head"><div class="card-title">📜 Certifications professionnelles</div></div>
+          <div class="card-body">
+            <div class="vis-hint">👁️ Tu peux <strong>masquer toute cette section</strong> → onglet <strong>⚙️ Publication</strong>.</div>
+            <p class="card-sub">Certifications obtenues : Google, Coursera, AFD, etc.</p>
             <div class="dynamic-list" id="listeCertifs"></div>
             <button class="add-btn" onclick="ajouterCertif()">+ Ajouter une certification</button>
             <div style="height:20px"></div>
@@ -408,7 +420,8 @@
               <label class="vis-item"><div><div class="vis-label">Compétences</div><div class="vis-sub">Grille de skills</div></div><label class="toggle"><input type="checkbox" id="vis_competences" checked><span class="toggle-slider"></span></label></label>
               <label class="vis-item"><div><div class="vis-label">Expériences</div><div class="vis-sub">Timeline des postes</div></div><label class="toggle"><input type="checkbox" id="vis_experiences" checked><span class="toggle-slider"></span></label></label>
               <label class="vis-item"><div><div class="vis-label">Projets</div><div class="vis-sub">Grille des réalisations</div></div><label class="toggle"><input type="checkbox" id="vis_projets" checked><span class="toggle-slider"></span></label></label>
-              <label class="vis-item"><div><div class="vis-label">Certifications</div><div class="vis-sub">Formations & diplômes</div></div><label class="toggle"><input type="checkbox" id="vis_certifications" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Formations & Diplômes</div><div class="vis-sub">Parcours académique (licences, masters…)</div></div><label class="toggle"><input type="checkbox" id="vis_formations" checked><span class="toggle-slider"></span></label></label>
+              <label class="vis-item"><div><div class="vis-label">Certifications</div><div class="vis-sub">Certifications professionnelles</div></div><label class="toggle"><input type="checkbox" id="vis_certifications" checked><span class="toggle-slider"></span></label></label>
               <label class="vis-item"><div><div class="vis-label">Langues</div><div class="vis-sub">Pills de langues</div></div><label class="toggle"><input type="checkbox" id="vis_langues" checked><span class="toggle-slider"></span></label></label>
               <label class="vis-item"><div><div class="vis-label">Centres d'intérêt</div><div class="vis-sub">Hobbies & passions</div></div><label class="toggle"><input type="checkbox" id="vis_interets" checked><span class="toggle-slider"></span></label></label>
             </div>
