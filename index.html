@@ -406,17 +406,17 @@
       <input class="auth-input" id="loginPwd" type="password" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="auth-btn" id="loginBtn" onclick="doLogin()">Se connecter →</button>
-    <div class="auth-footer">PortfolioHub Admin · Comptes gérés via Google Sheets</div>
+    <div class="auth-footer">PortfolioHub Admin · DS Services</div>
   </div>
 
-  <!-- SETUP (aucun compte dans Sheets) -->
+  <!-- SETUP (aucun compte) -->
   <div class="auth-card" id="authSetup" style="display:none">
     <div class="auth-logo">
       <div class="auth-logo-icon">🔐</div>
       <div class="auth-logo-txt">Portfolio<span>Hub</span></div>
     </div>
     <div class="auth-title">Créer le compte administrateur</div>
-    <div class="auth-sub">Aucun compte trouvé dans ta Google Sheets.<br>Crée le premier compte — il aura les droits admin.</div>
+    <div class="auth-sub">Aucun compte administrateur trouvé.<br>Crée le premier compte — il aura les droits admin.</div>
     <div class="auth-error" id="setupError"></div>
     <div class="auth-field">
       <label class="auth-label">Ton nom</label>
@@ -435,7 +435,7 @@
       <input class="auth-input" id="setupPwd2" type="password" placeholder="Répète ton mot de passe" onkeydown="if(event.key==='Enter')doSetup()">
     </div>
     <button class="auth-btn" id="setupBtn" onclick="doSetup()">Créer mon compte →</button>
-    <div class="auth-footer">Compte sauvegardé dans l'onglet Utilisateurs de ta Google Sheets</div>
+    <div class="auth-footer">Accès sécurisé · PortfolioHub</div>
   </div>
 
 </div>
@@ -549,7 +549,7 @@
           <div class="card-body">
             <input type="hidden" id="f_id">
             <div class="form-grid">
-              <div class="form-group"><label>Prénom *</label><div class="input-wrap"><span class="input-icon">👤</span><input id="f_prenom" placeholder="Vincent"></div></div>
+              <div class="form-group"><label>Prénom *</label><div class="input-wrap"><span class="input-icon">👤</span><input id="f_prenom" placeholder="Vincent" oninput="autoFillSlug()"></div></div>
               <div class="form-group"><label>Nom *</label><div class="input-wrap"><span class="input-icon">👤</span><input id="f_nom" placeholder="Dupont"></div></div>
               <div class="form-group"><label>Email</label><div class="input-wrap"><span class="input-icon">📧</span><input id="f_email" type="email" placeholder="vincent@email.com"></div></div>
               <div class="form-group"><label>Téléphone</label><div class="input-wrap"><span class="input-icon">📞</span><input id="f_tel" placeholder="+229 01 23 45 67"></div></div>
@@ -565,8 +565,11 @@
                     <input type="file" id="f_photo_file" accept="image/*" style="display:none" onchange="previewPhoto(this)">
                     <button type="button" class="photo-upload-btn" onclick="document.getElementById('f_photo_file').click()">📁 Choisir une photo</button>
                     <div class="photo-name-tag" id="photoNameTag"><span id="photoFileName"></span> <span style="cursor:pointer;opacity:.6" onclick="clearPhoto()">✕</span></div>
-                    <div class="photo-upload-hint">JPG / PNG / WebP · La photo sera uploadée sur GitHub lors de l'enregistrement<br>Ou colle une URL directe ci-dessous</div>
-                    <input id="f_photo" class="ni" placeholder="https://... (URL directe optionnelle)" style="font-size:.78rem;padding:7px 10px" oninput="syncPhotoUrl(this.value)">
+                    <div class="photo-upload-hint">JPG / PNG / WebP · Sélectionne une photo depuis ton appareil</div>
+                    <div id="photoSavedTag" style="display:none;align-items:center;gap:8px;padding:6px 10px;background:#e8f5e9;border-radius:8px;font-size:.78rem;color:#2e7d32;font-weight:600">
+                      ✅ Photo enregistrée <span style="cursor:pointer;opacity:.6;margin-left:4px" onclick="clearPhotoSaved()">✕ Changer</span>
+                    </div>
+                    <input id="f_photo" class="ni" placeholder="URL directe (optionnelle)" style="font-size:.78rem;padding:7px 10px;display:none" oninput="syncPhotoUrl(this.value)">
                   </div>
                 </div>
               </div>
@@ -712,6 +715,15 @@
           <div class="card-head"><div class="card-title">⚙️ Publication</div></div>
           <div class="card-body">
             <div class="form-grid">
+              <div class="form-group full">
+                <label>Sous-domaine du portfolio</label>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <div class="input-wrap" style="flex:1;min-width:140px"><span class="input-icon">🌐</span><input id="f_slug" class="ni" placeholder="ex: wilfried" oninput="checkSlugDispo()" style="border-radius:8px 0 0 8px"></div>
+                  <span style="background:var(--bg);border:1.5px solid var(--border);border-left:none;padding:10px 11px;font-size:.82rem;color:var(--muted);border-radius:0 8px 8px 0;white-space:nowrap">.sotchedji.store</span>
+                  <span id="slugStatus" style="font-size:.75rem;font-weight:700;white-space:nowrap"></span>
+                </div>
+                <div style="font-size:.72rem;color:var(--muted);margin-top:5px">Laisse vide pour utiliser le prénom automatiquement · Ex: <em>wilfried</em> → wilfried.sotchedji.store</div>
+              </div>
               <div class="form-group"><label>Domaine de base</label><select id="f_domaine" class="ni"><option value="sotchedji.store">sotchedji.store</option></select></div>
               <div class="form-group"><label>Plan d'abonnement</label><select id="f_abonnement" class="ni"><option value="gratuit">🆓 Gratuit</option><option value="standard">⭐ Standard</option><option value="premium">💎 Premium</option></select></div>
               <div class="form-group"><label>Durée de l'abonnement</label><select id="f_duree" class="ni">
@@ -739,6 +751,10 @@
           <div class="card-body">
             <p class="card-sub">Active ou désactive chaque élément sur la landing page publique du client. Tout est visible par défaut.</p>
 
+            <div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🪪 Carte de visite PNG</div>
+            <div class="vis-grid" style="margin-bottom:18px">
+              <label class="vis-item"><div><div class="vis-label">Photo sur la carte exportée</div><div class="vis-sub">Afficher la photo dans le cercle de la carte PNG</div></div><label class="toggle"><input type="checkbox" id="vis_photo_carte" checked><span class="toggle-slider"></span></label></label>
+            </div>
             <div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📋 Informations de contact</div>
             <div class="vis-grid">
               <label class="vis-item"><div><div class="vis-label">Téléphone</div><div class="vis-sub">Dans la section contact</div></div><label class="toggle"><input type="checkbox" id="vis_telephone" checked><span class="toggle-slider"></span></label></label>
@@ -1305,12 +1321,45 @@
     _setPhotoPreview(null);
     document.getElementById('f_photo_file').value = '';
     document.getElementById('f_photo').value = '';
+    document.getElementById('f_photo').style.display = 'none';
     document.getElementById('photoNameTag').classList.remove('show');
+    const tag = document.getElementById('photoSavedTag'); if(tag) tag.style.display = 'none';
+  }
+
+  function clearPhotoSaved() {
+    document.getElementById('photoSavedTag').style.display = 'none';
+    document.getElementById('f_photo').value = '';
+    _photoBase64 = null;
+    _setPhotoPreview(null);
   }
 
   function syncPhotoUrl(url) {
     if (url) { _photoBase64 = null; _setPhotoPreview(url); document.getElementById('photoNameTag').classList.remove('show'); }
     else if (!_photoBase64) _setPhotoPreview(null);
+  }
+
+  function checkSlugDispo() {
+    const input = document.getElementById('f_slug');
+    const statusEl = document.getElementById('slugStatus');
+    if (!input || !statusEl) return;
+    const raw = input.value.trim();
+    const slug = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9-]/g,'');
+    if (!slug) { statusEl.innerHTML = ''; return; }
+    const domaine = document.getElementById('f_domaine')?.value || 'sotchedji.store';
+    const fullDomain = slug + '.' + domaine;
+    const currentId  = document.getElementById('f_id').value;
+    const taken = allClients.some(c => c.sous_domaine === fullDomain && String(c.id) !== String(currentId));
+    statusEl.innerHTML = taken
+      ? '<span style="color:#e53935;font-weight:700">❌ Déjà pris</span>'
+      : '<span style="color:#2e7d32;font-weight:700">✅ Disponible</span>';
+  }
+
+  function autoFillSlug() {
+    const slugInput = document.getElementById('f_slug');
+    if (!slugInput || slugInput.value.trim()) return;
+    const prenom = document.getElementById('f_prenom').value.trim();
+    const slug = prenom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+    if (slug) { slugInput.value = slug; checkSlugDispo(); }
   }
 
   // ── Lire le formulaire ──
@@ -1350,6 +1399,7 @@
       prenom:       g('f_prenom'), nom: g('f_nom'), email: g('f_email'),
       telephone:    g('f_tel'), profession: g('f_profession'), photo_url: g('f_photo'),
       photo_base64: _photoBase64 || undefined,
+      sous_domaine_slug: g('f_slug') || undefined,
       template_id: g('f_template'), domaine: g('f_domaine'), abonnement: g('f_abonnement'), duree_mois: g('f_duree') || '12',
       profil: {
         hero: {
@@ -1395,6 +1445,7 @@
           certifications: chk('vis_certifications'),
           langues:        chk('vis_langues'),
           interets:       chk('vis_interets'),
+          photo_carte:    chk('vis_photo_carte'),
         }
       }
     };
@@ -1644,7 +1695,7 @@
   }
 
   function resetForm() {
-    ['f_id','f_prenom','f_nom','f_email','f_tel','f_profession','f_photo',
+    ['f_id','f_prenom','f_nom','f_email','f_tel','f_profession','f_photo','f_slug',
      'h_eyebrow','h_sous_titre','h_lead','s1_val','s1_desc','s2_val','s2_desc','s3_val','s3_desc',
      'ap_titre','ap_intro','ap_p1','ap_p2','ap_p3',
      'ap1t','ap1d','ap2t','ap2d','ap3t','ap3d','v1t','v1d','v2t','v2d','v3t','v3d',
@@ -1656,6 +1707,7 @@
     });
     // Remettre tous les toggles à ON
     document.querySelectorAll('[id^="vis_"]').forEach(el => el.checked = true);
+    const slugSt = document.getElementById('slugStatus'); if(slugSt) slugSt.textContent = '';
     // Réinitialiser la photo
     clearPhoto();
     // Réinitialiser le titre du formulaire
@@ -2015,9 +2067,13 @@
     sv('f_tel',        d.telephone);
     sv('f_profession', d.profession);
     _photoBase64 = null;
-    if (d.photo_url) { _setPhotoPreview(d.photo_url); document.getElementById('photoNameTag').classList.remove('show'); }
-    else clearPhoto();
-    sv('f_photo',      d.photo_url);
+    if (d.photo_url) {
+      _setPhotoPreview(d.photo_url);
+      document.getElementById('photoNameTag').classList.remove('show');
+      document.getElementById('f_photo').value = d.photo_url;
+      document.getElementById('f_photo').style.display = 'none';
+      document.getElementById('photoSavedTag').style.display = 'flex';
+    } else { clearPhoto(); }
     sv('f_domaine',    d.domaine);
     sv('f_abonnement', d.abonnement);
 
@@ -2128,6 +2184,8 @@
     // Onglet 8 — Publication + Visibilité
     if (d.template_id)  sv('f_template',   d.template_id);
     if (d.duree_mois)   sv('f_duree',      String(d.duree_mois));
+    // Sous-domaine slug (extrait de sous_domaine existant)
+    if (d.sous_domaine) { sv('f_slug', d.sous_domaine.split('.')[0]); checkSlugDispo(); }
     const vis = p.visibilite || {};
     sc('vis_telephone',     vis.telephone);
     sc('vis_email',         vis.email);
@@ -2144,6 +2202,7 @@
     sc('vis_certifications',vis.certifications);
     sc('vis_langues',       vis.langues);
     sc('vis_interets',      vis.interets);
+    sc('vis_photo_carte',   vis.photo_carte);
   }
 
   // Helper HTML escape pour remplirFormulaire
@@ -2916,18 +2975,17 @@
     const localisation= ((profil.contact||{}).localisation||'').trim();
     const siteWeb    = c.sous_domaine ? 'https://'+c.sous_domaine : (c.domaine ? 'https://'+c.domaine : 'sotchedji.store');
 
-    // ── Photo ──
-    // GitHub Pages redirige github.io → domaine custom en HTTP, bloqué depuis HTTPS.
-    // Solution : utiliser raw.githubusercontent.com qui sert directement sans redirection + CORS OK.
+    // ── Photo (seulement si le toggle "Photo sur la carte" est activé) ──
     function toRawUrl(url) {
       if (!url) return url;
       const m = url.match(/https?:\/\/([^.]+)\.github\.io\/([^/?#]+)\/(.+)/);
       if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/main/${m[3]}`;
       return url;
     }
+    const showPhotoOnCard = (profil.visibilite?.photo_carte !== false);
     let photoImg = null;
-    const photoSrc = toRawUrl(c.photo_url);
-    if (photoSrc) {
+    if (showPhotoOnCard && c.photo_url) {
+      const photoSrc = toRawUrl(c.photo_url);
       try { photoImg = await Promise.race([_loadImg(photoSrc), new Promise((_,r)=>setTimeout(r,8000))]); } catch {}
     }
 
@@ -3203,7 +3261,7 @@
     ouvrirImport, fermerImport, switchImportTab, copierTemplate, afficherTemplate,
     importerJSON, chargerXLSX, telechargerTemplateExcel, exporterClientExcel,
     onFileChosen, doLogin, doSetup, logout, exporterCarteClient, mettreEnBrouillon,
-    previewPhoto, clearPhoto, syncPhotoUrl,
+    previewPhoto, clearPhoto, clearPhotoSaved, syncPhotoUrl, checkSlugDispo, autoFillSlug,
     chargerUtilisateurs, ouvrirModalUtilisateur, fermerModalUtilisateur,
     soumettreUtilisateur, supprimerUtilisateurUI
   });
