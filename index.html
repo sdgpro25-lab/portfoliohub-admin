@@ -252,6 +252,44 @@
 
     @media(max-width:900px){.sidebar{display:none}.main{margin-left:0}.content{padding:16px}.form-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
 
+    /* ═══ AUTH OVERLAY ═══ */
+    .auth-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#060e1c 0%,#0d1f38 45%,#06312c 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+    .auth-card{width:100%;max-width:420px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:24px;padding:44px 40px;backdrop-filter:blur(20px);box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06) inset;animation:slideUp .35s cubic-bezier(.4,0,.2,1)}
+    .auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
+    .auth-logo-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#2176ae,#0d9e8e);display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 8px 24px rgba(13,158,142,.4)}
+    .auth-logo-txt{font-size:1.3rem;font-weight:800;color:#fff}.auth-logo-txt span{color:#7dd3f8}
+    .auth-title{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:6px;text-align:center}
+    .auth-sub{font-size:.82rem;color:rgba(255,255,255,.45);text-align:center;margin-bottom:28px;line-height:1.6}
+    .auth-field{margin-bottom:16px}
+    .auth-label{display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+    .auth-input{width:100%;padding:13px 16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-size:.95rem;font-family:inherit;outline:none;transition:all .2s}
+    .auth-input:focus{border-color:rgba(13,158,142,.7);background:rgba(255,255,255,.10);box-shadow:0 0 0 3px rgba(13,158,142,.15)}
+    .auth-input::placeholder{color:rgba(255,255,255,.25)}
+    .auth-btn{width:100%;padding:14px;background:linear-gradient(135deg,#0d9e8e,#0a7d70);border:none;border-radius:12px;color:#fff;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .25s;box-shadow:0 6px 20px rgba(13,158,142,.35);margin-top:4px}
+    .auth-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(13,158,142,.45)}
+    .auth-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .auth-error{display:none;padding:11px 14px;background:rgba(224,82,96,.15);border:1px solid rgba(224,82,96,.35);border-radius:10px;font-size:.82rem;color:#f8a3ab;margin-bottom:16px;text-align:center}
+    .auth-footer{margin-top:24px;text-align:center;font-size:.75rem;color:rgba(255,255,255,.22)}
+    .auth-sep{display:flex;align-items:center;gap:12px;margin:20px 0}
+    .auth-sep::before,.auth-sep::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
+    .auth-sep span{font-size:.72rem;color:rgba(255,255,255,.25)}
+
+    /* ═══ STATUS BROUILLON ═══ */
+    .status-pill.brouillon{background:#f0f4f8;color:#4a6680;border:1px solid #d0dce8}
+    .status-pill.brouillon .status-dot{background:#8a9bb0}
+
+    /* ═══ BOUTONS ACTIONS MAJ + CARTE ═══ */
+    .btn-maj{background:#f0f4f8;color:#4a6680;border:1px solid #d0dce8;padding:5px 11px;border-radius:7px;font-size:.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:var(--t);white-space:nowrap;font-family:inherit}
+    .btn-maj:hover{background:#d0e8f5;color:var(--blue);border-color:#b0d0e8}
+    .btn-maj:disabled{opacity:.6;cursor:not-allowed}
+    .btn-act.carte{background:#f5f0fc;color:#6d3eaa;border:1px solid #d4c3ef}.btn-act.carte:hover{background:#ead9fc}
+
+    /* LOGOUT btn */
+    .btn-logout{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border:1.5px solid rgba(255,255,255,.12);border-radius:8px;background:transparent;color:rgba(255,255,255,.6);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:var(--t)}
+    .btn-logout:hover{background:rgba(224,82,96,.15);border-color:rgba(224,82,96,.4);color:#f8a3ab}
+    .topbar .btn-logout{border-color:var(--border);color:var(--muted);background:var(--bg)}
+    .topbar .btn-logout:hover{background:var(--rose-lt);border-color:#f9c8cc;color:var(--rose)}
+
     /* ═══ CLIENTS TABLE PREMIUM ═══ */
     .clients-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--border)}
     .clients-header-left{display:flex;align-items:center;gap:12px}
@@ -335,6 +373,49 @@
 </head>
 <body>
 
+<!-- ═══ AUTH OVERLAY ═══ -->
+<div class="auth-overlay" id="authOverlay">
+
+  <!-- LOGIN -->
+  <div class="auth-card" id="authLogin" style="display:none">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🚀</div>
+      <div class="auth-logo-txt">Portfolio<span>Hub</span></div>
+    </div>
+    <div class="auth-title">Accès administrateur</div>
+    <div class="auth-sub">Connecte-toi pour gérer tes clients et portfolios</div>
+    <div class="auth-error" id="loginError">Mot de passe incorrect. Réessaie.</div>
+    <div class="auth-field">
+      <label class="auth-label">Mot de passe</label>
+      <input class="auth-input" id="loginPwd" type="password" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="auth-btn" id="loginBtn" onclick="doLogin()">Se connecter →</button>
+    <div class="auth-footer">PortfolioHub Admin · v2.0</div>
+  </div>
+
+  <!-- SETUP (premier lancement) -->
+  <div class="auth-card" id="authSetup" style="display:none">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🔐</div>
+      <div class="auth-logo-txt">Portfolio<span>Hub</span></div>
+    </div>
+    <div class="auth-title">Première connexion</div>
+    <div class="auth-sub">Crée ton mot de passe administrateur.<br>Il sera demandé à chaque session.</div>
+    <div class="auth-error" id="setupError"></div>
+    <div class="auth-field">
+      <label class="auth-label">Nouveau mot de passe</label>
+      <input class="auth-input" id="setupPwd" type="password" placeholder="Minimum 8 caractères">
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Confirmer le mot de passe</label>
+      <input class="auth-input" id="setupPwd2" type="password" placeholder="Répète ton mot de passe" onkeydown="if(event.key==='Enter')doSetup()">
+    </div>
+    <button class="auth-btn" id="setupBtn" onclick="doSetup()">Créer mon mot de passe →</button>
+    <div class="auth-footer">Ce mot de passe est stocké localement dans ton navigateur</div>
+  </div>
+
+</div>
+
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sb-logo">
@@ -368,6 +449,7 @@
       <div class="tb-date" id="topTime">—</div>
       <button class="btn btn-gold btn-sm" onclick="ouvrirImport()">📥 Importer</button>
       <button class="btn btn-primary btn-sm" onclick="chargerClients()">🔄 Actualiser</button>
+      <button class="btn-logout topbar" onclick="logout()" title="Se déconnecter">🔓 Déconnexion</button>
       <div class="avatar-admin">GS</div>
     </div>
   </header>
@@ -648,6 +730,7 @@
         <div class="form-actions">
           <button class="btn btn-teal" id="btnEnregistrer" onclick="enregistrerClient()">✅ Enregistrer le client</button>
           <button class="btn btn-ghost" onclick="changerOnglet(7)">← Retour</button>
+          <button class="btn" id="btnBrouillon" onclick="mettreEnBrouillon()" style="display:none;background:#f0f4f8;color:#4a6680;border:1.5px solid #d0dce8" title="Sauvegarder sans publier — le portfolio reste hors ligne">📁 Brouillon</button>
           <button class="btn" style="background:#f0f4f8;color:var(--muted);" onclick="resetForm()">🗑 Effacer tout</button>
         </div>
       </div>
@@ -998,7 +1081,7 @@
     allClients = normaliserListe(clients);
     setText('statTotal', allClients.length);
     setText('statOnline', allClients.filter(c=>c.statut==='en_ligne').length);
-    setText('statPending', allClients.filter(c=>c.statut==='en_attente').length);
+    setText('statPending', allClients.filter(c=>c.statut==='en_attente'||c.statut==='brouillon').length);
     setText('clientCount', allClients.length ? '('+allClients.length+')' : '');
     renderTable('tableClients');
     renderTable('tableClients2');
@@ -1042,9 +1125,12 @@
         : `<div class="cl-links"><span class="lien-waiting">⏳ ${c.sous_domaine}</span></div>`;
 
       // Status pill
+      const isBrouillon = c.statut === 'brouillon';
       const statusPill = isOnline
         ? `<span class="status-pill online"><span class="status-dot"></span>En ligne</span>`
-        : `<span class="status-pill pending"><span class="status-dot"></span>En attente</span>`;
+        : isBrouillon
+          ? `<span class="status-pill brouillon"><span class="status-dot"></span>Brouillon</span>`
+          : `<span class="status-pill pending"><span class="status-dot"></span>En attente</span>`;
 
       // Dates
       const dateInscr = c.date_creation
@@ -1062,10 +1148,10 @@
       }
 
       // Action buttons
-      const deployBtn = !isOnline
+      const deployBtn = !isOnline && !isBrouillon
         ? `<button class="btn-deploy" onclick="deployer('${c.id}',this)">🚀 Déployer</button>` : '';
       const majBtn = isOnline
-        ? `<button class="btn-maj btn-act" onclick="mettreAJour('${c.id}',this)">🔄 Màj</button>` : '';
+        ? `<button class="btn-maj" onclick="mettreAJour('${c.id}',this)" title="Mettre à jour le portfolio">↻ Màj</button>` : '';
 
       return `<tr>
         <td>
@@ -1094,7 +1180,7 @@
             <div class="cl-act-secondary">
               <button class="btn-act design"  onclick="ouvrirModalTemplate('${c.id}')">🎨 Design</button>
               <button class="btn-act edit"    onclick="editerClient('${c.id}')">✏️ Modifier</button>
-              <button class="btn-act excel"   onclick="exporterClientExcel('${c.id}')">📊 Excel</button>
+              <button class="btn-act carte"   onclick="exporterCarteClient('${c.id}')">🪪 Carte</button>
               <button class="btn-act statut"  onclick="voirStatutDeploiement('${c.id}')">📡 Statut</button>
             </div>
           </div>
@@ -1234,6 +1320,8 @@
     if (titleEl) titleEl.textContent = '✏️ Modifier — ' + c.prenom + ' ' + c.nom;
     const btnEl = document.getElementById('btnEnregistrer');
     if (btnEl) btnEl.textContent = '💾 Sauvegarder les modifications';
+    const btnB = document.getElementById('btnBrouillon');
+    if (btnB) btnB.style.display = 'inline-flex';
     // Afficher la vue formulaire
     afficherVue('form'); changerOnglet(0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1448,6 +1536,8 @@
     if (titleEl) titleEl.textContent = '👤 Identité du client';
     const btnEl = document.getElementById('btnEnregistrer');
     if (btnEl) btnEl.textContent = '✅ Enregistrer le client';
+    const btnB = document.getElementById('btnBrouillon');
+    if (btnB) btnB.style.display = 'none';
     changerOnglet(0);
   }
 
@@ -2366,6 +2456,293 @@
     });
   }
 
+  // ══════════════════════════════════════════════════════════
+  // ── AUTH ──────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+  const AUTH_KEY = 'pf_auth_hash';
+  const SESS_KEY = 'pf_session';
+  const SESS_DUR = 8 * 3600 * 1000;
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function isAuthenticated() {
+    const s = sessionStorage.getItem(SESS_KEY);
+    if (!s) return false;
+    try { return Date.now() - JSON.parse(s).ts < SESS_DUR; } catch { return false; }
+  }
+
+  function checkAuth() {
+    if (isAuthenticated()) { showAdmin(); return; }
+    const hasHash = localStorage.getItem(AUTH_KEY);
+    if (hasHash) showLogin(); else showSetup();
+  }
+
+  function showLogin() {
+    document.getElementById('authOverlay').style.display = 'flex';
+    document.getElementById('authSetup').style.display  = 'none';
+    document.getElementById('authLogin').style.display  = 'block';
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginPwd').value = '';
+    setTimeout(() => document.getElementById('loginPwd').focus(), 100);
+  }
+
+  function showSetup() {
+    document.getElementById('authOverlay').style.display = 'flex';
+    document.getElementById('authSetup').style.display  = 'block';
+    document.getElementById('authLogin').style.display  = 'none';
+    document.getElementById('setupError').style.display = 'none';
+    setTimeout(() => document.getElementById('setupPwd').focus(), 100);
+  }
+
+  function showAdmin() {
+    document.getElementById('authOverlay').style.display = 'none';
+    chargerTemplates();
+    setTimeout(chargerClients, 600);
+  }
+
+  async function doLogin() {
+    const pwd = document.getElementById('loginPwd').value;
+    if (!pwd) return;
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.textContent = 'Vérification...';
+    const hash = await sha256(pwd);
+    if (hash === localStorage.getItem(AUTH_KEY)) {
+      sessionStorage.setItem(SESS_KEY, JSON.stringify({ ts: Date.now() }));
+      showAdmin();
+    } else {
+      document.getElementById('loginError').style.display = 'block';
+      document.getElementById('loginPwd').value = '';
+      document.getElementById('loginPwd').focus();
+      btn.disabled = false; btn.textContent = 'Se connecter →';
+    }
+  }
+
+  async function doSetup() {
+    const pwd  = document.getElementById('setupPwd').value;
+    const pwd2 = document.getElementById('setupPwd2').value;
+    const errEl = document.getElementById('setupError');
+    errEl.style.display = 'none';
+    if (!pwd || pwd.length < 8) {
+      errEl.textContent = 'Mot de passe trop court (minimum 8 caractères).';
+      errEl.style.display = 'block'; return;
+    }
+    if (pwd !== pwd2) {
+      errEl.textContent = 'Les mots de passe ne correspondent pas.';
+      errEl.style.display = 'block'; return;
+    }
+    const btn = document.getElementById('setupBtn');
+    btn.disabled = true; btn.textContent = 'Création...';
+    const hash = await sha256(pwd);
+    localStorage.setItem(AUTH_KEY, hash);
+    sessionStorage.setItem(SESS_KEY, JSON.stringify({ ts: Date.now() }));
+    showAdmin();
+  }
+
+  function logout() {
+    if (!confirm('Se déconnecter de PortfolioHub Admin ?')) return;
+    sessionStorage.removeItem(SESS_KEY);
+    checkAuth();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ── BROUILLON ─────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+  async function mettreEnBrouillon() {
+    const id = document.getElementById('f_id').value;
+    if (!id) return;
+    const data = lireFormulaire();
+    data.statut = 'brouillon';
+    toast('Mise en brouillon...', 'info', '📁');
+    const r = await api('sauvegarderClient', data);
+    if (r && r.success) {
+      toast('Client sauvegardé en brouillon — non publié en ligne', 'success', '📁');
+      resetForm(); chargerClients(); afficherVue('dashboard');
+    } else {
+      toast('Erreur : ' + (r && r.error ? r.error : '?'), 'error');
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ── EXPORT CARTE PNG ──────────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+  function _rrPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y,     x + w, y + r,     r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x,     y + h, x,       y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x,     y,     x + r,   y,          r);
+    ctx.closePath();
+  }
+
+  async function _loadImg(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  async function exporterCarteClient(id) {
+    const c = allClients.find(x => x.id === id);
+    if (!c) return;
+    toast('Génération de la carte...', 'info', '🪪');
+
+    const W = 420, H = 640, SCALE = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width  = W * SCALE;
+    canvas.height = H * SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(SCALE, SCALE);
+
+    // ── Clip card shape ──
+    _rrPath(ctx, 0, 0, W, H, 20);
+    ctx.clip();
+
+    // ── Background teal gradient ──
+    const bg = ctx.createLinearGradient(0, 0, W * 0.4, H);
+    bg.addColorStop(0, '#0a9d8e');
+    bg.addColorStop(1, '#054f47');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Decorative circles (top right) ──
+    ctx.globalAlpha = 0.10;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(W - 40, -30, 100, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W + 20, 60, 80, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // ── White top panel ──
+    const splitY = 310;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(W, 0);
+    ctx.lineTo(W, splitY - 40);
+    ctx.bezierCurveTo(W, splitY + 8, W * 0.65, splitY + 38, W / 2, splitY + 28);
+    ctx.bezierCurveTo(W * 0.35, splitY + 38, 0, splitY + 8, 0, splitY - 40);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── Teal arch at very top ──
+    ctx.fillStyle = '#0d9e8e';
+    ctx.beginPath();
+    ctx.arc(W / 2, -8, 98, 0, Math.PI);
+    ctx.fill();
+
+    // ── Photo ──
+    const px = W / 2, py = 148, pr = 58;
+
+    // White ring
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(px, py, pr + 8, 0, Math.PI * 2); ctx.fill();
+    // Teal thin ring
+    ctx.strokeStyle = '#0d9e8e'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(px, py, pr + 5, 0, Math.PI * 2); ctx.stroke();
+
+    // Clip & draw photo
+    ctx.save();
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.clip();
+
+    const initiales = ((c.prenom || '?')[0] + (c.nom || '?')[0]).toUpperCase();
+    let drawn = false;
+    if (c.photo_url) {
+      try {
+        const img = await Promise.race([_loadImg(c.photo_url), new Promise((_,r)=>setTimeout(r,5000))]);
+        ctx.drawImage(img, px - pr, py - pr, pr * 2, pr * 2);
+        drawn = true;
+      } catch {}
+    }
+    if (!drawn) {
+      const ig = ctx.createLinearGradient(px-pr, py-pr, px+pr, py+pr);
+      ig.addColorStop(0, '#2176ae'); ig.addColorStop(1, '#0d9e8e');
+      ctx.fillStyle = ig; ctx.fillRect(px-pr, py-pr, pr*2, pr*2);
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${Math.round(pr * 0.72)}px Arial, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(initiales, px, py);
+    }
+    ctx.restore();
+
+    // ── Name ──
+    ctx.fillStyle = '#0f2d4a';
+    ctx.font = 'bold 19px Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(((c.prenom||'')+' '+(c.nom||'')).toUpperCase(), W/2, py + pr + 32);
+
+    // ── Profession ──
+    ctx.fillStyle = '#4a6680';
+    ctx.font = '13px Arial, sans-serif';
+    let prof = c.profession || '';
+    if (ctx.measureText(prof).width > W - 80) {
+      while (ctx.measureText(prof+'…').width > W - 80 && prof.length) prof = prof.slice(0,-1);
+      prof += '…';
+    }
+    ctx.fillText(prof, W/2, py + pr + 52);
+
+    // ── Divider ──
+    ctx.strokeStyle = 'rgba(13,158,142,0.3)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W*0.12, py+pr+68); ctx.lineTo(W*0.88, py+pr+68); ctx.stroke();
+
+    // ── Info rows (teal zone) ──
+    const infoStart = py + pr + 92;
+    const rows = [
+      { type: 'Email',     val: c.email     || '—' },
+      { type: 'Tél',       val: c.telephone || '—' },
+      { type: 'Site',      val: c.sous_domaine ? 'https://'+c.sous_domaine : '—' },
+      { type: 'Statut',    val: c.statut === 'en_ligne' ? 'En ligne ✓' : c.statut === 'brouillon' ? 'Brouillon' : 'En attente' },
+    ];
+    const rH = 38, rG = 9;
+    rows.forEach(({ type, val }, i) => {
+      const ry = infoStart + i * (rH + rG);
+      // Row bg
+      ctx.fillStyle = 'rgba(255,255,255,0.11)';
+      _rrPath(ctx, W*0.07, ry, W*0.86, rH, 8); ctx.fill();
+      // Type label
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = 'bold 10px Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(type.toUpperCase(), W*0.13, ry + 14);
+      // Value
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px Arial, sans-serif';
+      let v = val;
+      if (ctx.measureText(v).width > W*0.58) {
+        while (ctx.measureText(v+'…').width > W*0.58 && v.length) v = v.slice(0,-1);
+        v += '…';
+      }
+      ctx.fillText(v, W*0.13, ry + 28);
+    });
+
+    // ── Bottom branding ──
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(0, H - 46, W, 46);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'bold 12px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('✦  PORTFOLIOHUB', W/2, H - 24);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = '10px Arial, sans-serif';
+    ctx.fillText('sotchedji.store', W/2, H - 10);
+
+    // ── Download ──
+    const a = document.createElement('a');
+    a.download = `carte_${(c.prenom||'client')}_${(c.nom||'')}.png`.toLowerCase().replace(/\s+/g,'_');
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    toast(`Carte de ${c.prenom} exportée !`, 'success', '🪪');
+  }
+
   // ── Init ──
   Object.assign(window, {
     afficherVue, changerOnglet, chargerTemplates, chargerClients, enregistrerClient,
@@ -2376,11 +2753,10 @@
     previewTemplatePleinEcran, previewTemplateInline, previewTemplateId,
     ouvrirImport, fermerImport, switchImportTab, copierTemplate, afficherTemplate,
     importerJSON, chargerXLSX, telechargerTemplateExcel, exporterClientExcel,
-    onFileChosen
+    onFileChosen, doLogin, doSetup, logout, exporterCarteClient, mettreEnBrouillon
   });
 
-  chargerTemplates();
-  setTimeout(chargerClients, 600);
+  checkAuth();
 </script>
 </body>
 </html>
