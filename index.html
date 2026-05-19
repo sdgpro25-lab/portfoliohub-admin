@@ -1222,13 +1222,10 @@
       const tplCls  = tplNom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z]/g,'');
       const tplChipCls = ['classique','moderne','elegant'].includes(tplCls) ? tplCls : 'default';
 
-      // Liens
+      // Liens — on n'affiche que le sous-domaine public, jamais le repo GitHub
       const liens = isOnline
-        ? `<div class="cl-links">
-             <a class="lien-pub2" href="${pubUrl}" target="_blank" rel="noopener">🔗 ${c.sous_domaine}</a>
-             <a class="lien-gh2" href="${ghUrl}" target="_blank" rel="noopener">⚙ ${c.repo_github}</a>
-           </div>`
-        : `<div class="cl-links"><span class="lien-waiting">⏳ ${c.sous_domaine}</span></div>`;
+        ? `<div class="cl-links"><a class="lien-pub2" href="${pubUrl}" target="_blank" rel="noopener">🔗 ${c.sous_domaine}</a></div>`
+        : `<div class="cl-links"><span class="lien-waiting">⏳ ${c.sous_domaine||'—'}</span></div>`;
 
       // Status pill
       const isBrouillon = c.statut === 'brouillon';
