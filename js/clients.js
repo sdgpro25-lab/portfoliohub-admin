@@ -27,6 +27,14 @@ async function chargerClients() {
   setText('clientCount', allClients.length ? '('+allClients.length+')' : '');
   renderTable('tableClients');
   renderTable('tableClients2');
+  // Pré-charger les photos en dataURL dès le chargement → zéro CORS au moment de l'export carte
+  allClients.forEach(c => {
+    if (c.photo_url && !c._photoDataUrl) {
+      _loadImg(c.photo_url).then(img => {
+        if (img && img.src) c._photoDataUrl = img.src;
+      }).catch(() => {});
+    }
+  });
 }
 
 function renderTable(tbodyId) {

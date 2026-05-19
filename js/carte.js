@@ -98,14 +98,35 @@ async function exporterCarteClient(id) {
 
   // ── Photo ──
   const showPhoto = (profil.visibilite?.photo_carte !== false);
+  if (!showPhoto) {
+    console.warn('[carte] vis_photo_carte = false → initiales forcées');
+    toast('vis_photo_carte désactivé → cochez "Photo sur carte" dans Publication', 'info', '⚠️');
+  }
+  if (showPhoto && !c.photo_url) {
+    console.warn('[carte] photo_url vide → initiales');
+    toast('Aucune photo_url pour ce client → initiales', 'info', '⚠️');
+  }
   let photoImg = null;
   if (showPhoto && c.photo_url) {
-    try {
-      photoImg = await Promise.race([
-        _loadImg(c.photo_url),
-        new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 30000))
-      ]);
-    } catch(e) { console.warn('[carte] photo timeout/échec:', e && e.message); }
+    // Si déjà pré-chargée en dataURL au chargement de la page → réutilise directement
+    if (c._photoDataUrl) {
+      photoImg = await new Promise((res, rej) => {
+        const el = new Image();
+        el.onload  = () => el.naturalWidth > 0 ? res(el) : rej(new Error('w=0'));
+        el.onerror = rej;
+        el.src = c._photoDataUrl;
+      }).catch(() => null);
+      console.log('[carte] photo depuis cache pré-chargé ✅');
+    }
+    // Sinon chargement normal (avec fallback same-origin + raw.githubusercontent)
+    if (!photoImg) {
+      try {
+        photoImg = await Promise.race([
+          _loadImg(c.photo_url),
+          new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 30000))
+        ]);
+      } catch(e) { console.warn('[carte] photo timeout/échec:', e && e.message); }
+    }
     toast(photoImg ? 'Photo chargée ✓' : 'Photo non chargée — initiales', photoImg ? 'success' : 'info', photoImg ? '🖼' : '👤');
   }
 
