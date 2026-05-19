@@ -2840,30 +2840,61 @@
     const profil = c.profil || {};
     const initiales = ((c.prenom||'?')[0]+(c.nom||'?')[0]).toUpperCase();
 
-    // ── Couleurs template ──
+    // ── Palette exacte du template ──
     const tpl = allTemplates.find(t => String(t.id) === String(c.template_id));
-    const swatches = extraireSwatchesCss(tpl ? tpl.css_vars : '');
-    const accent1  = swatches[0]?.value || '#0d9e8e';
-    const accent2  = swatches[1]?.value || '#2176ae';
-    // Parse hex → r,g,b pour rgba() dynamique
-    function hexRgb(hex) {
-      const h = hex.replace('#','');
-      if (h.length === 3) return [parseInt(h[0]+h[0],16), parseInt(h[1]+h[1],16), parseInt(h[2]+h[2],16)];
-      return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
-    }
-    function accentRgba(hex, a) { try { const [r,g,b]=hexRgb(hex); return `rgba(${r},${g},${b},${a})`; } catch { return `rgba(13,158,142,${a})`; } }
-    const a1 = (a) => accentRgba(accent1, a);
-    const a2 = (a) => accentRgba(accent2, a);
+    const cssMap = {};
+    (extraireSwatchesCss(tpl ? tpl.css_vars : '')).forEach(s => { cssMap[s.name] = s.value; });
 
-    // ── Données dynamiques avec fallbacks ──
+    // Couleurs sémantiques avec fallbacks robustes
+    const COL = {
+      bg:      cssMap['bg']           || cssMap['background']    || '#f3f7fc',
+      surface: cssMap['surface']      || cssMap['card']          || '#ffffff',
+      text:    cssMap['text']         || cssMap['color']         || '#0f2d4a',
+      muted:   cssMap['muted']        || cssMap['text-secondary']|| '#6b829a',
+      primary: cssMap['primary']      || cssMap['primary-color'] || '#2176ae',
+      accent:  cssMap['accent']       || cssMap['secondary']     || cssMap['primary'] || '#0d9e8e',
+      border:  cssMap['border']       || cssMap['separator']     || 'rgba(0,0,0,0.1)',
+      gold:    cssMap['gold']         || cssMap['highlight']     || cssMap['accent']  || '#c89b3c',
+    };
+
+    // Helpers couleur
+    function hexToRgb(hex) {
+      const h = hex.replace('#','');
+      if (h.length === 3) return [parseInt(h[0]+h[0],16),parseInt(h[1]+h[1],16),parseInt(h[2]+h[2],16)];
+      return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
+    }
+    function withAlpha(hex, a) {
+      if (!hex || !hex.startsWith('#')) return hex || 'transparent';
+      try { const [r,g,b]=hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; } catch { return hex; }
+    }
+    function luminance(hex) {
+      try { const [r,g,b]=hexToRgb(hex); return (r*299+g*587+b*114)/1000; } catch { return 200; }
+    }
+    // Éclaircit ou assombrit selon luminosité du bg
+    const bgIsDark = luminance(COL.bg) < 128;
+
+    // Sur fond clair → texte sombre. Sur fond sombre → texte clair.
+    const onBg      = bgIsDark ? '#ffffff'    : COL.text;
+    const onBgMuted = bgIsDark ? 'rgba(255,255,255,0.6)' : withAlpha(COL.muted, 0.85);
+    // Couleur accent pour pill text : contraster avec le fond de la pill
+    const pillBg    = withAlpha(COL.accent, 0.12);
+    const pillStroke= withAlpha(COL.accent, 0.5);
+    const pillText  = luminance(COL.accent) < 128 ? COL.accent : COL.primary;
+    // Couleur anneau cercle
+    const ringColor = withAlpha(COL.primary, 0.3);
+    // Fond rows contact
+    const rowBg     = bgIsDark ? 'rgba(255,255,255,0.06)' : withAlpha(COL.primary, 0.05);
+    const rowStroke = withAlpha(COL.primary, 0.14);
+
+    // ── Données dynamiques ──
     let desc = ((profil.hero||{}).lead || (profil.apropos||{}).intro || '').trim();
     if (!desc) {
       const p = c.profession || 'son domaine';
       desc = `Professionnel spécialisé en ${p}, disponible pour des services, collaborations et opportunités professionnelles.`;
     }
-    const specs       = ((profil.competences||[]).slice(0,3)).map(k=>k.titre).filter(Boolean);
-    const localisation = ((profil.contact||{}).localisation||'').trim();
-    const siteWeb     = c.sous_domaine ? 'https://'+c.sous_domaine : (c.domaine ? 'https://'+c.domaine : 'sotchedji.store');
+    const specs      = ((profil.competences||[]).slice(0,3)).map(k=>k.titre).filter(Boolean);
+    const localisation= ((profil.contact||{}).localisation||'').trim();
+    const siteWeb    = c.sous_domaine ? 'https://'+c.sous_domaine : (c.domaine ? 'https://'+c.domaine : 'sotchedji.store');
 
     // ── Photo ──
     let photoImg = null;
@@ -2871,84 +2902,83 @@
       try { photoImg = await Promise.race([_loadImg(c.photo_url), new Promise((_,r)=>setTimeout(r,6000))]); } catch {}
     }
 
-    // ══ CARTE PROFESSIONNELLE ══
+    // ══ DESSIN CARTE ══
     const cv = _makeCanvas(W, H, SC);
     const v  = cv.ctx;
 
-    // Fond sombre dégradé (teinte du template)
-    const bv = v.createLinearGradient(0, 0, W, H);
-    bv.addColorStop(0, '#0c1b2e'); bv.addColorStop(1, '#0a1e18');
-    v.fillStyle = bv; v.fillRect(0, 0, W, H);
+    // Fond exact du template
+    v.fillStyle = COL.bg; v.fillRect(0, 0, W, H);
 
-    // Cercles décoratifs aux couleurs du template
-    v.save(); v.globalAlpha = 0.09; v.fillStyle = accent1;
-    _cercle(v, -60, H*0.20, 220); v.fill();
-    v.fillStyle = accent2;
-    _cercle(v, W+60, H*0.78, 200); v.fill();
+    // Cercles déco discrets (couleur accent du template)
+    v.save(); v.globalAlpha = 0.07; v.fillStyle = COL.accent;
+    _cercle(v, -50, H*0.18, 200); v.fill();
+    v.fillStyle = COL.primary;
+    _cercle(v, W+50, H*0.80, 190); v.fill();
     v.restore();
 
-    // Bande de couleur en haut
-    v.fillStyle = a1(0.9);
-    v.fillRect(0, 0, W, 6);
+    // Bande top (couleur primary)
+    v.fillStyle = COL.primary; v.fillRect(0, 0, W, 7);
 
-    // Ligne déco haut
-    v.strokeStyle = a1(0.4); v.lineWidth = 1.5;
-    v.beginPath(); v.moveTo(W*0.08, 24); v.lineTo(W*0.92, 24); v.stroke();
+    // Ligne déco sous bande
+    v.strokeStyle = withAlpha(COL.primary, 0.18); v.lineWidth = 1;
+    v.beginPath(); v.moveTo(W*0.08, 28); v.lineTo(W*0.92, 28); v.stroke();
 
-    // ── Logo cercle avec initiales ──
-    const lx = W/2, ly = 112, lr = 54;
+    // ── Cercle avatar ──
+    const lx = W/2, ly = 118, lr = 54;
     v.save();
-    v.shadowColor = a1(0.55); v.shadowBlur = 28;
+    v.shadowColor = withAlpha(COL.primary, 0.35); v.shadowBlur = 22;
     const lgrd = v.createLinearGradient(lx-lr, ly-lr, lx+lr, ly+lr);
-    lgrd.addColorStop(0, accent1); lgrd.addColorStop(1, accent2);
+    lgrd.addColorStop(0, COL.primary); lgrd.addColorStop(1, COL.accent);
     v.fillStyle = lgrd; _cercle(v, lx, ly, lr); v.fill();
     v.restore();
-    v.strokeStyle = 'rgba(255,255,255,0.22)'; v.lineWidth = 2;
-    _cercle(v, lx, ly, lr+4); v.stroke();
+    v.strokeStyle = ringColor; v.lineWidth = 2.5;
+    _cercle(v, lx, ly, lr+5); v.stroke();
     if (photoImg) {
       v.save(); _cercle(v, lx, ly, lr); v.clip();
       v.drawImage(photoImg, lx-lr, ly-lr, lr*2, lr*2);
       v.restore();
     } else {
-      v.fillStyle = '#fff'; v.font = `bold ${Math.round(lr*0.62)}px Arial`;
+      // Initiales dans le cercle — blanc si cercle sombre, sinon surface
+      const initCol = luminance(COL.primary) < 160 ? '#ffffff' : COL.text;
+      v.fillStyle = initCol; v.font = `bold ${Math.round(lr*0.60)}px Arial`;
       v.textAlign = 'center'; v.textBaseline = 'middle';
       v.fillText(initiales, lx, ly); v.textBaseline = 'alphabetic';
     }
 
-    // ── Nom complet ──
+    // ── Nom ──
     const nomComplet = ((c.prenom||'')+' '+(c.nom||'')).trim().toUpperCase();
-    v.fillStyle = 'rgba(255,255,255,0.97)'; v.font = 'bold 20px Arial'; v.textAlign = 'center';
+    v.fillStyle = onBg; v.font = 'bold 20px Arial'; v.textAlign = 'center';
     v.fillText(_truncate(v, nomComplet, W-60), W/2, ly+lr+36);
 
-    // ── Profession ──
-    v.fillStyle = a1(0.92); v.font = '12.5px Arial';
+    // ── Profession (couleur accent) ──
+    v.fillStyle = COL.accent; v.font = '12.5px Arial';
     v.fillText(_truncate(v, c.profession||'', W-90), W/2, ly+lr+55);
 
     // ── Séparateur ──
-    v.strokeStyle = a1(0.2); v.lineWidth = 1;
+    v.strokeStyle = withAlpha(COL.primary, 0.15); v.lineWidth = 1;
     v.beginPath(); v.moveTo(W*0.18, ly+lr+70); v.lineTo(W*0.82, ly+lr+70); v.stroke();
 
-    // ── Description (3 lignes max) ──
+    // ── Description ──
     let curY = ly+lr+90;
-    v.font = '11px Arial'; v.fillStyle = 'rgba(255,255,255,0.55)'; v.textAlign = 'center';
+    v.font = '11px Arial'; v.fillStyle = onBgMuted; v.textAlign = 'center';
     const descLines = _wrapText(v, desc, W-80, 3);
     descLines.forEach(line => { v.fillText(line, W/2, curY); curY += 17; });
 
-    // ── Spécialités ──
+    // ── Pills spécialités ──
     if (specs.length > 0) {
       curY += 16;
       const pillH = 24, pillR = 12, hGap = 8;
-      v.font = '10px Arial';
+      v.font = 'bold 9.5px Arial';
       const availW = W - 44;
       const maxPW  = Math.floor((availW - hGap*(specs.length-1)) / specs.length);
       let sx = 22;
       specs.forEach(spec => {
-        const label = _truncate(v, spec, maxPW-20);
-        v.fillStyle = a1(0.14);
+        const label = _truncate(v, spec, maxPW-18);
+        v.fillStyle = pillBg;
         _rrPath(v, sx, curY, maxPW, pillH, pillR); v.fill();
-        v.strokeStyle = a1(0.5); v.lineWidth = 1;
+        v.strokeStyle = pillStroke; v.lineWidth = 1;
         _rrPath(v, sx, curY, maxPW, pillH, pillR); v.stroke();
-        v.fillStyle = a1(0.95); v.textAlign = 'center';
+        v.fillStyle = pillText; v.textAlign = 'center';
         v.fillText(label, sx+maxPW/2, curY+pillH/2+4);
         sx += maxPW+hGap;
       });
@@ -2957,7 +2987,7 @@
 
     // ── Séparateur contact ──
     curY += 18;
-    v.strokeStyle = a1(0.25); v.lineWidth = 1;
+    v.strokeStyle = withAlpha(COL.primary, 0.2); v.lineWidth = 1;
     v.beginPath(); v.moveTo(W*0.08, curY); v.lineTo(W*0.92, curY); v.stroke();
     curY += 16;
 
@@ -2970,26 +3000,26 @@
 
     const vrH = 40, vrG = 7;
     contactRows.forEach(({ic, val}) => {
-      v.fillStyle = 'rgba(255,255,255,0.05)';
+      v.fillStyle = rowBg;
       _rrPath(v, W*0.07, curY, W*0.86, vrH, 10); v.fill();
-      v.strokeStyle = a1(0.15); v.lineWidth = 0.8;
+      v.strokeStyle = rowStroke; v.lineWidth = 0.8;
       _rrPath(v, W*0.07, curY, W*0.86, vrH, 10); v.stroke();
-      v.fillStyle = a1(0.9); v.font = 'bold 13px Arial'; v.textAlign = 'left';
+      v.fillStyle = COL.accent; v.font = 'bold 13px Arial'; v.textAlign = 'left';
       v.fillText(ic, W*0.12, curY+vrH/2+5);
-      v.fillStyle = 'rgba(255,255,255,0.82)'; v.font = '11.5px Arial';
-      v.fillText(_truncate(v, val, W*0.60), W*0.20, curY+vrH/2+5);
+      v.fillStyle = onBg; v.font = '11.5px Arial';
+      v.fillText(_truncate(v, val, W*0.59), W*0.20, curY+vrH/2+5);
       curY += vrH+vrG;
     });
 
-    // ── Pied de carte discret ──
+    // ── Footer ──
     curY += 12;
-    v.strokeStyle = a1(0.18); v.lineWidth = 1;
+    v.strokeStyle = withAlpha(COL.primary, 0.15); v.lineWidth = 1;
     v.beginPath(); v.moveTo(W*0.1, curY); v.lineTo(W*0.9, curY); v.stroke();
     curY += 16;
-    v.fillStyle = 'rgba(255,255,255,0.22)'; v.font = '9px Arial'; v.textAlign = 'center';
+    v.fillStyle = onBgMuted; v.font = '9px Arial'; v.textAlign = 'center';
     v.fillText('Généré par PortfolioHub · DS Services', W/2, curY);
     curY += 14;
-    v.fillStyle = a1(0.48); v.font = 'bold 8px Arial';
+    v.fillStyle = withAlpha(COL.accent, 0.7); v.font = 'bold 8px Arial';
     v.fillText('sotchedji.store', W/2, curY);
 
     _dlCanvas(cv.canvas, `carte_${c.prenom}_${c.nom}`);
