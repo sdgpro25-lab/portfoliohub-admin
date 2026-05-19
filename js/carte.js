@@ -66,14 +66,18 @@ async function exporterCarteClient(id) {
   const nbCertifs   = (profil.certifications||[]).length;
 
   // ── Photo ──
+  // _loadImg gère lui-même raw URL + data URL + fallbacks — on lui passe l'URL d'origine
   const showPhotoOnCard = (profil.visibilite?.photo_carte !== false);
   let photoImg = null;
   if (showPhotoOnCard && c.photo_url) {
-    const rawSrc = _toRawUrl(c.photo_url);
-    try { photoImg = await Promise.race([_loadImg(rawSrc), new Promise((_,r)=>setTimeout(r,10000))]); } catch {}
-    if (!photoImg && rawSrc !== c.photo_url) {
-      try { photoImg = await Promise.race([_loadImg(c.photo_url), new Promise((_,r)=>setTimeout(r,6000))]); } catch {}
-    }
+    try {
+      photoImg = await Promise.race([
+        _loadImg(c.photo_url),
+        new Promise((_, r) => setTimeout(r, 15000))
+      ]);
+    } catch(e) { console.warn('[carte] photo timeout ou erreur', e); }
+    if (photoImg) toast(`Photo chargée ✓`, 'success', '🖼');
+    else toast(`Photo non chargée — initiales utilisées`, 'info', '👤');
   }
 
   // ── Données contact ──

@@ -89,50 +89,40 @@ function _toRawUrl(url) {
 }
 
 async function _loadImg(src) {
-  // Stratégie 1 : fetch → blob URL (contourne le cache navigateur sans CORS)
-  try {
-    const bust = src + (src.includes('?') ? '&' : '?') + '_cb=' + Date.now();
-    const resp = await fetch(bust, { mode: 'cors', cache: 'no-store', credentials: 'omit' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const blob = await resp.blob();
-    if (!blob.size) throw new Error('blob vide');
-    const burl = URL.createObjectURL(blob);
-    const img = await new Promise((res, rej) => {
-      const el = new Image();
-      el.onload  = () => res(el);
-      el.onerror = () => rej(new Error('decode échoué'));
-      el.src = burl;
-    });
-    URL.revokeObjectURL(burl);
-    if (!img.naturalWidth) throw new Error('naturalWidth=0');
-    return img;
-  } catch(e1) { console.warn('[photo] fetch+blob:', e1.message); }
-
-  // Stratégie 2 : img crossOrigin='anonymous' + cache buster
-  try {
-    return await new Promise((res, rej) => {
-      const el = new Image();
-      el.crossOrigin = 'anonymous';
-      el.onload  = () => { if (el.naturalWidth) res(el); else rej(new Error('w=0')); };
-      el.onerror = () => rej(new Error('direct échoué'));
-      el.src = src + (src.includes('?') ? '&' : '?') + '_d=' + Date.now();
-    });
-  } catch(e2) { console.warn('[photo] direct:', e2.message); }
-
-  // Stratégie 3 : raw.githubusercontent.com si URL github.io (double tentative)
+  // Convertit d'abord en raw.githubusercontent.com si c'est une URL github.io
   const raw = _toRawUrl(src);
-  if (raw !== src) {
+  // Essaie raw en premier, puis l'URL d'origine si différente
+  const candidates = (raw !== src) ? [raw, src] : [raw];
+
+  for (const url of candidates) {
     try {
-      return await new Promise((res, rej) => {
-        const el = new Image();
-        el.crossOrigin = 'anonymous';
-        el.onload  = () => { if (el.naturalWidth) res(el); else rej(); };
-        el.onerror = rej;
-        el.src = raw + '?_r=' + Date.now();
+      const bust = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+      const resp  = await fetch(bust, { mode: 'cors', cache: 'no-cache', credentials: 'omit' });
+      if (!resp.ok) { console.warn('[photo] HTTP', resp.status, url); continue; }
+      const blob  = await resp.blob();
+      if (!blob.size) { console.warn('[photo] blob vide', url); continue; }
+
+      // → data URL (base64) : permanent, aucun problème CORS sur canvas
+      const dataUrl = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload  = () => res(reader.result);
+        reader.onerror = () => rej(new Error('FileReader échoué'));
+        reader.readAsDataURL(blob);
       });
-    } catch(e3) { console.warn('[photo] raw fallback:', e3.message || e3); }
+
+      const img = await new Promise((res, rej) => {
+        const el = new Image();
+        el.onload  = () => el.naturalWidth ? res(el) : rej(new Error('naturalWidth=0'));
+        el.onerror = () => rej(new Error('img.src échoué'));
+        el.src = dataUrl;
+      });
+
+      console.log('[photo] ✅ chargée depuis', url);
+      return img;
+    } catch(e) { console.warn('[photo] ❌', url, ':', e.message); }
   }
 
+  console.error('[photo] toutes les tentatives ont échoué pour', src);
   return null;
 }
 
