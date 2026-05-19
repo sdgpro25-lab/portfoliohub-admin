@@ -2834,183 +2834,146 @@
   async function exporterCarteClient(id) {
     const c = allClients.find(x => x.id === id);
     if (!c) return;
-    toast('Génération recto + verso...', 'info', '🪪');
+    toast('Génération de la carte...', 'info', '🪪');
 
-    const W = 420, H = 650, SC = 2;
+    const W = 420, H = 680, SC = 2;
+    const profil = c.profil || {};
     const initiales = ((c.prenom||'?')[0]+(c.nom||'?')[0]).toUpperCase();
 
-    // ── Charger la photo ──
+    // ── Données dynamiques avec fallbacks ──
+    let desc = ((profil.hero||{}).lead || (profil.apropos||{}).intro || '').trim();
+    if (!desc) {
+      const p = c.profession || 'son domaine';
+      desc = `Professionnel spécialisé en ${p}, disponible pour des services, collaborations et opportunités professionnelles.`;
+    }
+    const specs       = ((profil.competences||[]).slice(0,3)).map(k=>k.titre).filter(Boolean);
+    const localisation = ((profil.contact||{}).localisation||'').trim();
+    const siteWeb     = c.sous_domaine ? 'https://'+c.sous_domaine : (c.domaine ? 'https://'+c.domaine : 'sotchedji.store');
+
+    // ── Photo ──
     let photoImg = null;
     if (c.photo_url) {
       try { photoImg = await Promise.race([_loadImg(c.photo_url), new Promise((_,r)=>setTimeout(r,6000))]); } catch {}
     }
 
-    // ══ RECTO ══
-    const cr = _makeCanvas(W, H, SC);
-    const r  = cr.ctx;
-
-    // Fond teal dégradé
-    let bg = r.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, '#0d9e8e'); bg.addColorStop(1, '#054f47');
-    r.fillStyle = bg; r.fillRect(0, 0, W, H);
-
-    // Cercles déco fond
-    r.save(); r.globalAlpha = 0.08;
-    r.fillStyle = '#fff';
-    _cercle(r, W+30, -40, 160); r.fill();
-    _cercle(r, -30, H*0.3, 120); r.fill();
-    r.restore();
-
-    // Panel blanc haut (zone photo + nom)
-    const splitY = 340;
-    r.fillStyle = '#fff';
-    r.beginPath();
-    r.moveTo(0, 0); r.lineTo(W, 0); r.lineTo(W, splitY - 50);
-    r.bezierCurveTo(W, splitY+10, W*0.62, splitY+44, W/2, splitY+34);
-    r.bezierCurveTo(W*0.38, splitY+44, 0, splitY+10, 0, splitY-50);
-    r.closePath(); r.fill();
-
-    // Arche teal en haut
-    r.fillStyle = '#0d9e8e';
-    r.beginPath(); r.arc(W/2, -12, 110, 0, Math.PI); r.fill();
-
-    // Logo PortfolioHub dans l'arche
-    r.fillStyle = 'rgba(255,255,255,0.9)';
-    r.font = 'bold 11px Arial'; r.textAlign = 'center';
-    r.fillText('PORTFOLIOHUB', W/2, 28);
-
-    // ── Photo cercle ──
-    const px = W/2, py = 158, pr = 62;
-    // Ombre
-    r.save(); r.shadowColor = 'rgba(13,158,142,0.4)'; r.shadowBlur = 20;
-    r.fillStyle = '#fff'; _cercle(r, px, py, pr+9); r.fill(); r.restore();
-    // Bague teal
-    r.strokeStyle = '#0d9e8e'; r.lineWidth = 3.5;
-    _cercle(r, px, py, pr+6); r.stroke();
-
-    r.save(); _cercle(r, px, py, pr); r.clip();
-    if (photoImg) {
-      r.drawImage(photoImg, px-pr, py-pr, pr*2, pr*2);
-    } else {
-      const ig = r.createLinearGradient(px-pr, py-pr, px+pr, py+pr);
-      ig.addColorStop(0,'#2176ae'); ig.addColorStop(1,'#0d9e8e');
-      r.fillStyle = ig; r.fillRect(px-pr, py-pr, pr*2, pr*2);
-      r.fillStyle = '#fff'; r.font = `bold ${Math.round(pr*0.7)}px Arial`;
-      r.textAlign = 'center'; r.textBaseline = 'middle';
-      r.fillText(initiales, px, py); r.textBaseline = 'alphabetic';
-    }
-    r.restore();
-
-    // ── Nom ──
-    r.fillStyle = '#0f2d4a';
-    r.font = 'bold 20px Arial'; r.textAlign = 'center';
-    r.fillText((c.prenom+' '+c.nom).toUpperCase(), W/2, py+pr+34);
-
-    // ── Profession ──
-    r.fillStyle = '#3a5a78'; r.font = '13px Arial';
-    const profTxt = _truncate(r, c.profession||'', W-100);
-    r.fillText(profTxt, W/2, py+pr+56);
-
-    // ── Séparateur ──
-    r.strokeStyle = 'rgba(13,158,142,0.25)'; r.lineWidth = 1;
-    r.beginPath(); r.moveTo(W*0.15, py+pr+72); r.lineTo(W*0.85, py+pr+72); r.stroke();
-
-    // ── Lignes info (fond teal) ──
-    const infoY = py+pr+92, rH = 42, rG = 8;
-    const infoRows = [
-      {label:'Email',  val: c.email||'—'},
-      {label:'Tél',    val: c.telephone||'—'},
-      {label:'Site',   val: c.sous_domaine?'https://'+c.sous_domaine:'—'},
-      {label:'Statut', val: c.statut==='en_ligne'?'En ligne ✓':c.statut==='brouillon'?'Brouillon':'En attente'},
-    ];
-    infoRows.forEach(({label,val},i) => {
-      const ry = infoY + i*(rH+rG);
-      r.fillStyle = 'rgba(255,255,255,0.13)';
-      _rrPath(r, W*0.06, ry, W*0.88, rH, 9); r.fill();
-      // Barre colorée gauche
-      r.fillStyle = 'rgba(255,255,255,0.5)';
-      _rrPath(r, W*0.06, ry, 4, rH, 2); r.fill();
-      // Label
-      r.fillStyle = 'rgba(255,255,255,0.55)';
-      r.font = 'bold 9px Arial'; r.textAlign = 'left';
-      r.fillText(label.toUpperCase(), W*0.115, ry+16);
-      // Valeur
-      r.fillStyle = '#fff'; r.font = '12.5px Arial';
-      r.fillText(_truncate(r, val, W*0.7), W*0.115, ry+32);
-    });
-
-    // ── Barre bas ──
-    r.fillStyle = 'rgba(0,0,0,0.25)'; r.fillRect(0, H-44, W, 44);
-    r.fillStyle = 'rgba(255,255,255,0.85)'; r.font = 'bold 11px Arial'; r.textAlign='center';
-    r.fillText('PORTFOLIOHUB · sotchedji.store', W/2, H-18);
-
-    _dlCanvas(cr.canvas, `recto_${c.prenom}_${c.nom}`);
-
-    // ══ VERSO ══
+    // ══ CARTE PROFESSIONNELLE ══
     const cv = _makeCanvas(W, H, SC);
     const v  = cv.ctx;
 
-    // Fond marine
-    let bv = v.createLinearGradient(0, 0, W, H);
-    bv.addColorStop(0,'#0d1f38'); bv.addColorStop(1,'#0a2a22');
-    v.fillStyle = bv; v.fillRect(0,0,W,H);
+    // Fond bleu nuit → vert profond
+    const bv = v.createLinearGradient(0, 0, W, H);
+    bv.addColorStop(0, '#0c1d36'); bv.addColorStop(1, '#09271e');
+    v.fillStyle = bv; v.fillRect(0, 0, W, H);
 
-    // Cercles déco
-    v.save(); v.globalAlpha = 0.06; v.fillStyle='#0d9e8e';
-    _cercle(v,-40,H*0.2,180); v.fill();
-    _cercle(v,W+40,H*0.75,160); v.fill();
+    // Cercles décoratifs discrets
+    v.save(); v.globalAlpha = 0.07; v.fillStyle = '#0d9e8e';
+    _cercle(v, -55, H*0.22, 210); v.fill();
+    _cercle(v, W+55, H*0.76, 190); v.fill();
     v.restore();
 
     // Ligne déco haut
-    v.strokeStyle='rgba(13,158,142,0.4)'; v.lineWidth=1;
-    v.beginPath(); v.moveTo(W*0.1,60); v.lineTo(W*0.9,60); v.stroke();
+    v.strokeStyle = 'rgba(13,158,142,0.45)'; v.lineWidth = 1.5;
+    v.beginPath(); v.moveTo(W*0.08, 50); v.lineTo(W*0.92, 50); v.stroke();
 
-    // Logo cercle
-    const lx=W/2, ly=H*0.32, lr=72;
-    let lgrd = v.createLinearGradient(lx-lr,ly-lr,lx+lr,ly+lr);
-    lgrd.addColorStop(0,'#0d9e8e'); lgrd.addColorStop(1,'#2176ae');
-    v.fillStyle=lgrd; _cercle(v,lx,ly,lr); v.fill();
-    v.fillStyle='rgba(255,255,255,0.12)'; _cercle(v,lx,ly,lr-8); v.fill();
-    v.fillStyle='#fff'; v.font='bold 30px Arial'; v.textAlign='center'; v.textBaseline='middle';
-    v.fillText('PH',lx,ly); v.textBaseline='alphabetic';
+    // ── Logo cercle avec initiales ──
+    const lx = W/2, ly = 116, lr = 54;
+    v.save();
+    v.shadowColor = 'rgba(13,158,142,0.5)'; v.shadowBlur = 24;
+    const lgrd = v.createLinearGradient(lx-lr, ly-lr, lx+lr, ly+lr);
+    lgrd.addColorStop(0, '#0d9e8e'); lgrd.addColorStop(1, '#2176ae');
+    v.fillStyle = lgrd; _cercle(v, lx, ly, lr); v.fill();
+    v.restore();
+    v.strokeStyle = 'rgba(255,255,255,0.18)'; v.lineWidth = 1.5;
+    _cercle(v, lx, ly, lr-9); v.stroke();
+    if (photoImg) {
+      v.save(); _cercle(v, lx, ly, lr); v.clip();
+      v.drawImage(photoImg, lx-lr, ly-lr, lr*2, lr*2);
+      v.restore();
+    } else {
+      v.fillStyle = '#fff'; v.font = `bold ${Math.round(lr*0.62)}px Arial`;
+      v.textAlign = 'center'; v.textBaseline = 'middle';
+      v.fillText(initiales, lx, ly); v.textBaseline = 'alphabetic';
+    }
 
-    // Titre
-    v.fillStyle='rgba(255,255,255,0.9)'; v.font='bold 22px Arial'; v.textAlign='center';
-    v.fillText('PortfolioHub', W/2, ly+lr+38);
-    v.fillStyle='rgba(13,158,142,0.8)'; v.font='11px Arial';
-    v.fillText('Portfolios professionnels personnalisés', W/2, ly+lr+58);
+    // ── Nom complet ──
+    const nomComplet = ((c.prenom||'')+' '+(c.nom||'')).trim().toUpperCase();
+    v.fillStyle = 'rgba(255,255,255,0.96)'; v.font = 'bold 19px Arial'; v.textAlign = 'center';
+    v.fillText(_truncate(v, nomComplet, W-60), W/2, ly+lr+34);
 
-    // Séparateur
-    v.strokeStyle='rgba(13,158,142,0.3)'; v.lineWidth=1;
-    v.beginPath(); v.moveTo(W*0.2,ly+lr+74); v.lineTo(W*0.8,ly+lr+74); v.stroke();
+    // ── Profession ──
+    v.fillStyle = 'rgba(13,210,180,0.92)'; v.font = '12px Arial';
+    v.fillText(_truncate(v, c.profession||'', W-90), W/2, ly+lr+53);
 
-    // Infos contact verso
-    const vRows=[
-      {ic:'✉', val:c.email||'—'},
-      {ic:'✆', val:c.telephone||'—'},
-      {ic:'⊕', val:c.sous_domaine?'https://'+c.sous_domaine:'sotchedji.store'},
-    ];
-    const vyStart = ly+lr+96, vrH=40, vrG=8;
-    vRows.forEach(({ic,val},i)=>{
-      const ry=vyStart+i*(vrH+vrG);
-      v.fillStyle='rgba(255,255,255,0.07)';
-      _rrPath(v,W*0.08,ry,W*0.84,vrH,8); v.fill();
-      v.fillStyle='rgba(13,158,142,0.8)'; v.font='bold 14px Arial'; v.textAlign='left';
-      v.fillText(ic, W*0.13, ry+vrH/2+5);
-      v.fillStyle='rgba(255,255,255,0.8)'; v.font='12px Arial';
-      v.fillText(_truncate(v,val,W*0.6), W*0.21, ry+vrH/2+5);
+    // ── Séparateur ──
+    v.strokeStyle = 'rgba(13,158,142,0.22)'; v.lineWidth = 1;
+    v.beginPath(); v.moveTo(W*0.15, ly+lr+68); v.lineTo(W*0.85, ly+lr+68); v.stroke();
+
+    // ── Description (3 lignes max) ──
+    let curY = ly+lr+88;
+    v.font = '11px Arial'; v.fillStyle = 'rgba(255,255,255,0.58)'; v.textAlign = 'center';
+    const descLines = _wrapText(v, desc, W-80, 3);
+    descLines.forEach(line => { v.fillText(line, W/2, curY); curY += 17; });
+
+    // ── Spécialités ──
+    if (specs.length > 0) {
+      curY += 14;
+      const pillH = 22, pillR = 11, hGap = 7;
+      v.font = '9.5px Arial';
+      const availW = W - 44;
+      const maxPW  = Math.floor((availW - hGap*(specs.length-1)) / specs.length);
+      let sx = 22;
+      specs.forEach(spec => {
+        const label = _truncate(v, spec, maxPW-24);
+        v.fillStyle = 'rgba(13,158,142,0.18)';
+        _rrPath(v, sx, curY, maxPW, pillH, pillR); v.fill();
+        v.strokeStyle = 'rgba(13,158,142,0.48)'; v.lineWidth = 1;
+        _rrPath(v, sx, curY, maxPW, pillH, pillR); v.stroke();
+        v.fillStyle = 'rgba(13,220,180,0.92)'; v.textAlign = 'center';
+        v.fillText(label, sx+maxPW/2, curY+pillH/2+4);
+        sx += maxPW+hGap;
+      });
+      curY += pillH;
+    }
+
+    // ── Séparateur contact ──
+    curY += 14;
+    v.strokeStyle = 'rgba(13,158,142,0.28)'; v.lineWidth = 1;
+    v.beginPath(); v.moveTo(W*0.08, curY); v.lineTo(W*0.92, curY); v.stroke();
+    curY += 16;
+
+    // ── Blocs contact ──
+    const contactRows = [];
+    if (c.email)      contactRows.push({ic:'✉', val: c.email});
+    if (c.telephone)  contactRows.push({ic:'✆', val: c.telephone});
+    contactRows.push({ic:'⊕', val: siteWeb});
+    if (localisation) contactRows.push({ic:'⌖', val: localisation});
+
+    const vrH = 40, vrG = 6;
+    contactRows.forEach(({ic, val}) => {
+      v.fillStyle = 'rgba(255,255,255,0.065)';
+      _rrPath(v, W*0.07, curY, W*0.86, vrH, 9); v.fill();
+      v.strokeStyle = 'rgba(13,158,142,0.12)'; v.lineWidth = 0.7;
+      _rrPath(v, W*0.07, curY, W*0.86, vrH, 9); v.stroke();
+      v.fillStyle = 'rgba(13,210,170,0.88)'; v.font = 'bold 13px Arial'; v.textAlign = 'left';
+      v.fillText(ic, W*0.12, curY+vrH/2+5);
+      v.fillStyle = 'rgba(255,255,255,0.8)'; v.font = '11.5px Arial';
+      v.fillText(_truncate(v, val, W*0.62), W*0.20, curY+vrH/2+5);
+      curY += vrH+vrG;
     });
 
-    // Bas verso
-    v.strokeStyle='rgba(13,158,142,0.3)'; v.lineWidth=1;
-    v.beginPath(); v.moveTo(W*0.1,H-55); v.lineTo(W*0.9,H-55); v.stroke();
-    v.fillStyle='rgba(255,255,255,0.3)'; v.font='10px Arial'; v.textAlign='center';
-    v.fillText('Généré par PortfolioHub · sdgpro25-lab', W/2, H-30);
-    v.fillStyle='rgba(13,158,142,0.6)'; v.font='bold 9px Arial';
-    v.fillText('sotchedji.store', W/2, H-14);
+    // ── Pied de carte discret ──
+    curY += 10;
+    v.strokeStyle = 'rgba(13,158,142,0.2)'; v.lineWidth = 1;
+    v.beginPath(); v.moveTo(W*0.1, curY); v.lineTo(W*0.9, curY); v.stroke();
+    curY += 16;
+    v.fillStyle = 'rgba(255,255,255,0.24)'; v.font = '9px Arial'; v.textAlign = 'center';
+    v.fillText('Généré par PortfolioHub · sdgpro25-lab', W/2, curY);
+    curY += 14;
+    v.fillStyle = 'rgba(13,158,142,0.5)'; v.font = 'bold 8px Arial';
+    v.fillText('sotchedji.store', W/2, curY);
 
-    setTimeout(()=>{ _dlCanvas(cv.canvas, `verso_${c.prenom}_${c.nom}`); }, 400);
-    toast(`Carte ${c.prenom} — recto + verso téléchargés !`, 'success', '🪪');
+    _dlCanvas(cv.canvas, `carte_${c.prenom}_${c.nom}`);
+    toast(`Carte de ${c.prenom} générée !`, 'success', '🪪');
   }
 
   function _makeCanvas(w,h,sc){
@@ -3026,6 +2989,21 @@
     let t=txt;
     while(ctx.measureText(t+'…').width>maxW&&t.length)t=t.slice(0,-1);
     return t+'…';
+  }
+  function _wrapText(ctx,text,maxW,maxLines){
+    const words=text.split(' ');
+    const lines=[];
+    let cur='';
+    for(const word of words){
+      const test=cur?cur+' '+word:word;
+      if(ctx.measureText(test).width>maxW&&cur){
+        lines.push(cur);
+        if(lines.length>=maxLines)return lines;
+        cur=word;
+      }else{cur=test;}
+    }
+    if(cur&&lines.length<maxLines)lines.push(cur);
+    return lines;
   }
   function _dlCanvas(canvas,name){
     const a=document.createElement('a');
