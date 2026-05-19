@@ -92,9 +92,31 @@ async function _loadImg(src) {
   const clean = (src || '').trim();
   if (!clean) return null;
   const raw  = _toRawUrl(clean);
+  // Raw URL en premier — Access-Control-Allow-Origin: * garanti
   const urls = raw !== clean ? [raw, clean] : [clean];
 
-  // ── Étape 1 : img.crossOrigin='anonymous' (méthode la plus directe) ──
+  // ── Méthode PRIMAIRE : fetch → blob → dataURL (100% CORS-safe sur canvas) ──
+  for (const url of urls) {
+    try {
+      const resp = await fetch(url, { mode: 'cors', cache: 'no-store', credentials: 'omit' });
+      if (!resp.ok) { console.warn('[photo] fetch status', resp.status, url); continue; }
+      const blob = await resp.blob();
+      if (!blob.size) continue;
+      const dataUrl = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob);
+      });
+      const img = await new Promise((res, rej) => {
+        const el = new Image();
+        el.onload  = () => el.naturalWidth > 0 ? res(el) : rej(new Error('w=0'));
+        el.onerror = rej; el.src = dataUrl;
+      });
+      console.log('[photo] ✅ fetch+dataURL OK:', url);
+      return img;
+    } catch(e) { console.warn('[photo] fetch ❌', url, e.message); }
+  }
+
+  // ── Méthode FALLBACK : crossOrigin='anonymous' sans cache buster ──
   for (const url of urls) {
     try {
       const img = await new Promise((res, rej) => {
@@ -102,36 +124,11 @@ async function _loadImg(src) {
         el.crossOrigin = 'anonymous';
         el.onload  = () => el.naturalWidth > 0 ? res(el) : rej(new Error('w=0'));
         el.onerror = () => rej(new Error('onerror'));
-        el.src = url + (url.includes('?') ? '&' : '?') + '_c=' + Date.now();
+        el.src = url;
       });
       console.log('[photo] ✅ crossOrigin OK:', url);
       return img;
     } catch(e) { console.warn('[photo] crossOrigin ❌', url, e.message); }
-  }
-
-  // ── Étape 2 : fetch → FileReader → dataURL (contourne le cache) ──
-  for (const url of urls) {
-    try {
-      const resp = await fetch(url + (url.includes('?') ? '&' : '?') + '_f=' + Date.now(),
-        { mode: 'cors', cache: 'no-store', credentials: 'omit' });
-      if (!resp.ok) continue;
-      const blob = await resp.blob();
-      if (!blob.size) continue;
-      const dataUrl = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload  = () => res(r.result);
-        r.onerror = rej;
-        r.readAsDataURL(blob);
-      });
-      const img = await new Promise((res, rej) => {
-        const el = new Image();
-        el.onload  = () => el.naturalWidth > 0 ? res(el) : rej();
-        el.onerror = rej;
-        el.src = dataUrl;
-      });
-      console.log('[photo] ✅ fetch+dataURL OK:', url);
-      return img;
-    } catch(e) { console.warn('[photo] fetch ❌', url, e.message); }
   }
 
   console.error('[photo] ÉCHEC TOTAL pour:', src);

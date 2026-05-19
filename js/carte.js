@@ -103,9 +103,9 @@ async function exporterCarteClient(id) {
     try {
       photoImg = await Promise.race([
         _loadImg(c.photo_url),
-        new Promise((_, r) => setTimeout(r, 15000))
+        new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 30000))
       ]);
-    } catch {}
+    } catch(e) { console.warn('[carte] photo timeout/échec:', e && e.message); }
     toast(photoImg ? 'Photo chargée ✓' : 'Photo non chargée — initiales', photoImg ? 'success' : 'info', photoImg ? '🖼' : '👤');
   }
 
