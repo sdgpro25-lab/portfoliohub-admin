@@ -383,35 +383,47 @@
       <div class="auth-logo-txt">Portfolio<span>Hub</span></div>
     </div>
     <div class="auth-title">Accès administrateur</div>
-    <div class="auth-sub">Connecte-toi pour gérer tes clients et portfolios</div>
-    <div class="auth-error" id="loginError">Mot de passe incorrect. Réessaie.</div>
+    <div class="auth-sub">Connecte-toi avec ton email et mot de passe</div>
+    <div class="auth-error" id="loginError">Identifiants incorrects. Réessaie.</div>
+    <div class="auth-field">
+      <label class="auth-label">Email</label>
+      <input class="auth-input" id="loginEmail" type="email" placeholder="ton@email.com" onkeydown="if(event.key==='Enter')document.getElementById('loginPwd').focus()">
+    </div>
     <div class="auth-field">
       <label class="auth-label">Mot de passe</label>
       <input class="auth-input" id="loginPwd" type="password" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="auth-btn" id="loginBtn" onclick="doLogin()">Se connecter →</button>
-    <div class="auth-footer">PortfolioHub Admin · v2.0</div>
+    <div class="auth-footer">PortfolioHub Admin · Comptes gérés via Google Sheets</div>
   </div>
 
-  <!-- SETUP (premier lancement) -->
+  <!-- SETUP (aucun compte dans Sheets) -->
   <div class="auth-card" id="authSetup" style="display:none">
     <div class="auth-logo">
       <div class="auth-logo-icon">🔐</div>
       <div class="auth-logo-txt">Portfolio<span>Hub</span></div>
     </div>
-    <div class="auth-title">Première connexion</div>
-    <div class="auth-sub">Crée ton mot de passe administrateur.<br>Il sera demandé à chaque session.</div>
+    <div class="auth-title">Créer le compte administrateur</div>
+    <div class="auth-sub">Aucun compte trouvé dans ta Google Sheets.<br>Crée le premier compte — il aura les droits admin.</div>
     <div class="auth-error" id="setupError"></div>
     <div class="auth-field">
-      <label class="auth-label">Nouveau mot de passe</label>
-      <input class="auth-input" id="setupPwd" type="password" placeholder="Minimum 8 caractères">
+      <label class="auth-label">Ton nom</label>
+      <input class="auth-input" id="setupNom" placeholder="Ex: Gloire Sotchedji">
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Email</label>
+      <input class="auth-input" id="setupEmail" type="email" placeholder="ton@email.com">
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Mot de passe</label>
+      <input class="auth-input" id="setupPwd" type="password" placeholder="Minimum 6 caractères">
     </div>
     <div class="auth-field">
       <label class="auth-label">Confirmer le mot de passe</label>
       <input class="auth-input" id="setupPwd2" type="password" placeholder="Répète ton mot de passe" onkeydown="if(event.key==='Enter')doSetup()">
     </div>
-    <button class="auth-btn" id="setupBtn" onclick="doSetup()">Créer mon mot de passe →</button>
-    <div class="auth-footer">Ce mot de passe est stocké localement dans ton navigateur</div>
+    <button class="auth-btn" id="setupBtn" onclick="doSetup()">Créer mon compte →</button>
+    <div class="auth-footer">Compte sauvegardé dans l'onglet Utilisateurs de ta Google Sheets</div>
   </div>
 
 </div>
@@ -434,6 +446,7 @@
     <div class="sb-item" onclick="afficherVue('form')"><span class="ic">✨</span>Nouveau client</div>
     <div class="sb-label">Outils</div>
     <div class="sb-item" onclick="afficherVue('templates')"><span class="ic">🎨</span>Templates</div>
+    <div class="sb-item" onclick="afficherVue('utilisateurs')"><span class="ic">👥</span>Utilisateurs</div>
   </nav>
   <div class="sb-foot">v2.0 · sdgpro25-lab</div>
 </aside>
@@ -450,7 +463,7 @@
       <button class="btn btn-gold btn-sm" onclick="ouvrirImport()">📥 Importer</button>
       <button class="btn btn-primary btn-sm" onclick="chargerClients()">🔄 Actualiser</button>
       <button class="btn-logout topbar" onclick="logout()" title="Se déconnecter">🔓 Déconnexion</button>
-      <div class="avatar-admin">GS</div>
+      <div class="avatar-admin" id="avatarAdmin" style="cursor:pointer" onclick="afficherVue('utilisateurs')" title="Gérer les utilisateurs">GS</div>
     </div>
   </header>
 
@@ -737,6 +750,26 @@
 
     </div><!-- fin vue-form -->
 
+    <!-- ═══ VUE UTILISATEURS ═══ -->
+    <div id="vue-utilisateurs" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">👥 Comptes utilisateurs</div>
+          <button class="btn btn-primary btn-sm" onclick="ouvrirModalUtilisateur()">＋ Nouveau compte</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="ctbl">
+            <thead><tr><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Créé le</th><th>Actions</th></tr></thead>
+            <tbody id="tableUtilisateurs"><tr><td colspan="5"><div class="empty-state"><div class="empty-icon">⏳</div><p>Chargement...</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:14px 18px;background:var(--blue-lt);border:1px solid #a8d4f0;border-radius:12px;font-size:.82rem;color:#1a4a6e;line-height:1.7">
+        💡 <strong>Les comptes sont stockés dans l'onglet "Utilisateurs" de ta Google Sheets.</strong><br>
+        Tu peux aussi les gérer directement depuis Sheets. Le mot de passe est hashé (SHA-256) — jamais stocké en clair.
+      </div>
+    </div>
+
     <!-- ═══ VUE TEMPLATES ═══ -->
     <div id="vue-templates" style="display:none">
       <div class="card">
@@ -946,6 +979,33 @@
   </div>
 </div>
 
+<!-- MODAL NOUVEL UTILISATEUR -->
+<div class="modal-overlay" id="modalUtilisateur">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hd">
+      <div class="modal-title">👤 Nouveau compte</div>
+      <button class="modal-close" onclick="fermerModalUtilisateur()">✕</button>
+    </div>
+    <p class="modal-sub">Le compte sera enregistré dans l'onglet <strong>Utilisateurs</strong> de ta Google Sheets.</p>
+    <div class="form-grid" style="gap:14px">
+      <div class="form-group full"><label>Nom complet *</label><input id="u_nom" class="ni" placeholder="Ex: Gloire Sotchedji"></div>
+      <div class="form-group full"><label>Email *</label><input id="u_email" class="ni" type="email" placeholder="gloire@email.com"></div>
+      <div class="form-group"><label>Mot de passe *</label><input id="u_pwd" class="ni" type="password" placeholder="Min. 6 caractères"></div>
+      <div class="form-group"><label>Confirmer</label><input id="u_pwd2" class="ni" type="password" placeholder="Répète le mot de passe"></div>
+      <div class="form-group full"><label>Rôle</label>
+        <select id="u_role" class="ni">
+          <option value="admin">Admin — accès complet</option>
+          <option value="viewer">Viewer — lecture seule (à venir)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-teal" onclick="soumettreUtilisateur()">✅ Créer le compte</button>
+      <button class="btn btn-ghost" onclick="fermerModalUtilisateur()">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
 
@@ -1020,18 +1080,19 @@
 
   // ── Navigation vues ──
   function afficherVue(vue) {
-    ['dashboard','clients','form','templates'].forEach(v => {
+    ['dashboard','clients','form','templates','utilisateurs'].forEach(v => {
       const el = document.getElementById('vue-'+v);
       if (el) el.style.display = v === vue ? 'block' : 'none';
     });
     document.querySelectorAll('.sb-item').forEach((el,i) => {
-      el.classList.toggle('active', ['dashboard','clients','form','templates'][i] === vue);
+      el.classList.toggle('active', ['dashboard','clients','form','templates','utilisateurs'][i] === vue);
     });
-    const titres = {dashboard:'Tableau de bord', clients:'Clients', form:'Nouveau client', templates:'Templates'};
+    const titres = {dashboard:'Tableau de bord', clients:'Clients', form:'Nouveau client', templates:'Templates', utilisateurs:'Utilisateurs'};
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) pageTitle.textContent = titres[vue] || '';
-    if (vue === 'clients')   renderTable('tableClients2');
-    if (vue === 'templates') renderTemplatesView();
+    if (vue === 'clients')      renderTable('tableClients2');
+    if (vue === 'templates')    renderTemplatesView();
+    if (vue === 'utilisateurs') chargerUtilisateurs();
   }
 
   // ── Onglets formulaire ──
@@ -2457,27 +2518,39 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  // ── AUTH ──────────────────────────────────────────────────
+  // ── AUTH (via Google Sheets Utilisateurs) ─────────────────
   // ══════════════════════════════════════════════════════════
-  const AUTH_KEY = 'pf_auth_hash';
   const SESS_KEY = 'pf_session';
   const SESS_DUR = 8 * 3600 * 1000;
-
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
+  let sessionUser = null; // { nom, email, role }
 
   function isAuthenticated() {
     const s = sessionStorage.getItem(SESS_KEY);
     if (!s) return false;
-    try { return Date.now() - JSON.parse(s).ts < SESS_DUR; } catch { return false; }
+    try {
+      const parsed = JSON.parse(s);
+      if (Date.now() - parsed.ts >= SESS_DUR) return false;
+      sessionUser = parsed.user;
+      return true;
+    } catch { return false; }
   }
 
-  function checkAuth() {
+  async function checkAuth() {
     if (isAuthenticated()) { showAdmin(); return; }
-    const hasHash = localStorage.getItem(AUTH_KEY);
-    if (hasHash) showLogin(); else showSetup();
+    // Vérifier s'il existe des comptes dans Sheets
+    showLoginLoading();
+    const users = await api('listerUtilisateurs');
+    if (Array.isArray(users) && users.length > 0) {
+      showLogin();
+    } else {
+      showSetup();
+    }
+  }
+
+  function showLoginLoading() {
+    document.getElementById('authOverlay').style.display = 'flex';
+    document.getElementById('authLogin').style.display  = 'none';
+    document.getElementById('authSetup').style.display  = 'none';
   }
 
   function showLogin() {
@@ -2485,8 +2558,9 @@
     document.getElementById('authSetup').style.display  = 'none';
     document.getElementById('authLogin').style.display  = 'block';
     document.getElementById('loginError').style.display = 'none';
-    document.getElementById('loginPwd').value = '';
-    setTimeout(() => document.getElementById('loginPwd').focus(), 100);
+    document.getElementById('loginPwd').value   = '';
+    document.getElementById('loginEmail').value = '';
+    setTimeout(() => document.getElementById('loginEmail').focus(), 100);
   }
 
   function showSetup() {
@@ -2494,25 +2568,32 @@
     document.getElementById('authSetup').style.display  = 'block';
     document.getElementById('authLogin').style.display  = 'none';
     document.getElementById('setupError').style.display = 'none';
-    setTimeout(() => document.getElementById('setupPwd').focus(), 100);
+    setTimeout(() => document.getElementById('setupNom').focus(), 100);
   }
 
   function showAdmin() {
     document.getElementById('authOverlay').style.display = 'none';
+    // Afficher le nom de l'utilisateur connecté
+    const av = document.getElementById('avatarAdmin');
+    if (av && sessionUser) av.textContent = (sessionUser.nom||'?')[0].toUpperCase();
     chargerTemplates();
     setTimeout(chargerClients, 600);
   }
 
   async function doLogin() {
-    const pwd = document.getElementById('loginPwd').value;
-    if (!pwd) return;
+    const email = document.getElementById('loginEmail').value.trim();
+    const pwd   = document.getElementById('loginPwd').value;
+    if (!email || !pwd) return;
     const btn = document.getElementById('loginBtn');
-    btn.disabled = true; btn.textContent = 'Vérification...';
-    const hash = await sha256(pwd);
-    if (hash === localStorage.getItem(AUTH_KEY)) {
-      sessionStorage.setItem(SESS_KEY, JSON.stringify({ ts: Date.now() }));
+    btn.disabled = true; btn.textContent = 'Connexion...';
+    const r = await api('authentifier', { email, password: pwd });
+    if (r && r.success) {
+      sessionUser = { nom: r.nom, email: r.email, role: r.role };
+      sessionStorage.setItem(SESS_KEY, JSON.stringify({ ts: Date.now(), user: sessionUser }));
       showAdmin();
     } else {
+      document.getElementById('loginError').textContent =
+        (r && r.error && r.error !== 'Identifiants incorrects') ? r.error : 'Email ou mot de passe incorrect.';
       document.getElementById('loginError').style.display = 'block';
       document.getElementById('loginPwd').value = '';
       document.getElementById('loginPwd').focus();
@@ -2521,30 +2602,119 @@
   }
 
   async function doSetup() {
+    const nom  = document.getElementById('setupNom').value.trim();
+    const email = document.getElementById('setupEmail').value.trim();
     const pwd  = document.getElementById('setupPwd').value;
     const pwd2 = document.getElementById('setupPwd2').value;
     const errEl = document.getElementById('setupError');
     errEl.style.display = 'none';
-    if (!pwd || pwd.length < 8) {
-      errEl.textContent = 'Mot de passe trop court (minimum 8 caractères).';
-      errEl.style.display = 'block'; return;
-    }
-    if (pwd !== pwd2) {
-      errEl.textContent = 'Les mots de passe ne correspondent pas.';
-      errEl.style.display = 'block'; return;
-    }
+    if (!nom)  { errEl.textContent = 'Saisis ton nom.'; errEl.style.display='block'; return; }
+    if (!email) { errEl.textContent = 'Saisis ton email.'; errEl.style.display='block'; return; }
+    if (!pwd || pwd.length < 6) { errEl.textContent = 'Mot de passe trop court (minimum 6 caractères).'; errEl.style.display='block'; return; }
+    if (pwd !== pwd2) { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display='block'; return; }
     const btn = document.getElementById('setupBtn');
-    btn.disabled = true; btn.textContent = 'Création...';
-    const hash = await sha256(pwd);
-    localStorage.setItem(AUTH_KEY, hash);
-    sessionStorage.setItem(SESS_KEY, JSON.stringify({ ts: Date.now() }));
-    showAdmin();
+    btn.disabled = true; btn.textContent = 'Création du compte...';
+    const r = await api('creerUtilisateur', { nom, email, password: pwd, role: 'admin' });
+    if (r && r.success) {
+      sessionUser = { nom, email, role: 'admin' };
+      sessionStorage.setItem(SESS_KEY, JSON.stringify({ ts: Date.now(), user: sessionUser }));
+      showAdmin();
+      toast('Compte admin créé ! Tu peux ajouter d\'autres utilisateurs depuis la section 👥.', 'success', '✅');
+    } else {
+      errEl.textContent = (r && r.error) ? r.error : 'Erreur de création.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Créer mon compte →';
+    }
   }
 
   function logout() {
     if (!confirm('Se déconnecter de PortfolioHub Admin ?')) return;
     sessionStorage.removeItem(SESS_KEY);
+    sessionUser = null;
     checkAuth();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ── UTILISATEURS ──────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+  let allUtilisateurs = [];
+
+  async function chargerUtilisateurs() {
+    const tbody = document.getElementById('tableUtilisateurs');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">⏳</div><p>Chargement...</p></div></td></tr>`;
+    const r = await api('listerUtilisateurs');
+    allUtilisateurs = Array.isArray(r) ? r : [];
+    renderTableUtilisateurs();
+  }
+
+  function renderTableUtilisateurs() {
+    const tbody = document.getElementById('tableUtilisateurs');
+    if (!tbody) return;
+    if (!allUtilisateurs.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">👥</div><p>Aucun utilisateur.</p></div></td></tr>`;
+      return;
+    }
+    const moi = sessionUser ? sessionUser.email : '';
+    tbody.innerHTML = allUtilisateurs.map(u => {
+      const isMe = u.email === moi;
+      const roleBadge = u.role === 'admin'
+        ? `<span style="padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:700;background:#e8f3fc;color:#1a6fa8;border:1px solid #c5dcf0">Admin</span>`
+        : `<span style="padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:700;background:var(--bg);color:var(--muted);border:1px solid var(--border)">Viewer</span>`;
+      return `<tr>
+        <td>
+          <div class="cl-identity">
+            <div class="cl-av" style="background:linear-gradient(135deg,#2176ae,#0d9e8e)">${(u.nom||'?')[0].toUpperCase()}</div>
+            <div><div class="cl-name">${u.nom}${isMe?' <span style="font-size:.68rem;color:var(--teal);font-weight:700">(vous)</span>':''}</div></div>
+          </div>
+        </td>
+        <td style="font-size:.83rem;color:var(--muted)">${u.email}</td>
+        <td>${roleBadge}</td>
+        <td style="font-size:.78rem;color:var(--muted)">${u.date_creation||'—'}</td>
+        <td>
+          ${!isMe ? `<button class="btn-act" style="background:var(--rose-lt);color:var(--rose);border:1px solid #f9c8cc" onclick="supprimerUtilisateurUI('${u.id}','${u.nom}')">🗑 Supprimer</button>` : '<span style="font-size:.75rem;color:var(--muted)">—</span>'}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function ouvrirModalUtilisateur() {
+    ['u_nom','u_email','u_pwd','u_pwd2'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('modalUtilisateur').classList.add('open');
+    setTimeout(() => document.getElementById('u_nom').focus(), 100);
+  }
+
+  function fermerModalUtilisateur() {
+    document.getElementById('modalUtilisateur').classList.remove('open');
+  }
+
+  async function soumettreUtilisateur() {
+    const nom   = document.getElementById('u_nom').value.trim();
+    const email = document.getElementById('u_email').value.trim();
+    const pwd   = document.getElementById('u_pwd').value;
+    const pwd2  = document.getElementById('u_pwd2').value;
+    const role  = document.getElementById('u_role').value;
+    if (!nom || !email || !pwd) { toast('Remplis tous les champs obligatoires', 'error'); return; }
+    if (pwd !== pwd2) { toast('Les mots de passe ne correspondent pas', 'error'); return; }
+    toast('Création du compte...', 'info');
+    const r = await api('creerUtilisateur', { nom, email, password: pwd, role });
+    if (r && r.success) {
+      toast(`Compte créé pour ${nom} (${role})`, 'success', '✅');
+      fermerModalUtilisateur();
+      chargerUtilisateurs();
+    } else {
+      toast('Erreur : ' + (r && r.error ? r.error : '?'), 'error');
+    }
+  }
+
+  async function supprimerUtilisateurUI(id, nom) {
+    if (!confirm(`Supprimer le compte de ${nom} ?`)) return;
+    const r = await api('supprimerUtilisateur', { id });
+    if (r && r.success) {
+      toast(`Compte de ${nom} supprimé`, 'success');
+      chargerUtilisateurs();
+    } else {
+      toast('Erreur : ' + (r && r.error ? r.error : '?'), 'error');
+    }
   }
 
   // ══════════════════════════════════════════════════════════
@@ -2753,7 +2923,14 @@
     previewTemplatePleinEcran, previewTemplateInline, previewTemplateId,
     ouvrirImport, fermerImport, switchImportTab, copierTemplate, afficherTemplate,
     importerJSON, chargerXLSX, telechargerTemplateExcel, exporterClientExcel,
-    onFileChosen, doLogin, doSetup, logout, exporterCarteClient, mettreEnBrouillon
+    onFileChosen, doLogin, doSetup, logout, exporterCarteClient, mettreEnBrouillon,
+    chargerUtilisateurs, ouvrirModalUtilisateur, fermerModalUtilisateur,
+    soumettreUtilisateur, supprimerUtilisateurUI
+  });
+
+  // Fermer modal utilisateur en cliquant dehors
+  document.getElementById('modalUtilisateur').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalUtilisateur')) fermerModalUtilisateur();
   });
 
   checkAuth();
