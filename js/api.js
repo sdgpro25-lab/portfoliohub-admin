@@ -1,0 +1,186 @@
+// ═══════════════════════════════════════════════════════════
+// URL de l'API Apps Script — mettre à jour après redéploiement
+// ═══════════════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbzRetmJrnZXv0Yn6IxoSA3ajk5TWgJ-0vqNNbWqJCP4Vpcn2Oe_e4jIjlquHgwP7mbsbQ/exec';
+
+// ── Variables globales partagées ──
+window.allClients    = [];
+window.allTemplates  = [];
+window.currentUser   = null;
+
+// Helper universel fetch → remplace google.script.run
+async function api(action, data = null) {
+  try {
+    let res;
+    if (data === null) {
+      // GET (lecture)
+      res = await fetch(`${API_URL}?action=${action}`, { redirect: 'follow' });
+    } else {
+      // POST (mutation)
+      res = await fetch(API_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        body: JSON.stringify({ action, data })
+      });
+    }
+    return await res.json();
+  } catch (err) {
+    return { error: err.message || String(err) };
+  }
+}
+
+// ── Toast ──
+function toast(msg, type='', icon='') {
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  const t = document.getElementById('toast');
+  if (!t) { console.log(msg); return; }
+  const toastIcon = document.getElementById('toastIcon');
+  const toastMsg = document.getElementById('toastMsg');
+  if (toastIcon) toastIcon.textContent = icon || icons[type] || '💬';
+  if (toastMsg) toastMsg.textContent  = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 4200);
+}
+
+// ── Helpers utilitaires ──
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function setTableMessage(tbodyId, icon, message) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">${icon}</div><p>${message}</p></div></td></tr>`;
+}
+
+function normaliserListe(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+// ── Clock ──
+function tick() {
+  const n = new Date();
+  const topDate = document.getElementById('topDate');
+  const topTime = document.getElementById('topTime');
+  if (topDate) topDate.textContent = n.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if (topTime) topTime.textContent = n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── Extraire couleurs CSS vars ──
+function extraireSwatchesCss(cssVars) {
+  const colors = [];
+  const regex  = /--([a-zA-Z0-9_-]+)\s*:\s*(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsl[a]?\([^)]+\))/g;
+  let m;
+  const seen = new Set();
+  while ((m = regex.exec(cssVars)) !== null) {
+    const name = m[1], value = m[2];
+    if (!seen.has(value)) { seen.add(value); colors.push({ name, value }); }
+  }
+  return colors;
+}
+
+// ── Canvas helpers pour export PNG carte ──
+function _toRawUrl(url) {
+  if (!url) return url;
+  const m = url.match(/https?:\/\/([^.]+)\.github\.io\/([^/?#]+)\/(.+)/);
+  if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/main/${m[3]}`;
+  return url;
+}
+
+async function _loadImg(src) {
+  // Stratégie 1 : fetch → blob URL (contourne le cache navigateur sans CORS)
+  try {
+    const bust = src + (src.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+    const resp = await fetch(bust, { mode: 'cors', cache: 'no-store', credentials: 'omit' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    if (!blob.size) throw new Error('blob vide');
+    const burl = URL.createObjectURL(blob);
+    const img = await new Promise((res, rej) => {
+      const el = new Image();
+      el.onload  = () => res(el);
+      el.onerror = () => rej(new Error('decode échoué'));
+      el.src = burl;
+    });
+    URL.revokeObjectURL(burl);
+    if (!img.naturalWidth) throw new Error('naturalWidth=0');
+    return img;
+  } catch(e1) { console.warn('[photo] fetch+blob:', e1.message); }
+
+  // Stratégie 2 : img crossOrigin='anonymous' + cache buster
+  try {
+    return await new Promise((res, rej) => {
+      const el = new Image();
+      el.crossOrigin = 'anonymous';
+      el.onload  = () => { if (el.naturalWidth) res(el); else rej(new Error('w=0')); };
+      el.onerror = () => rej(new Error('direct échoué'));
+      el.src = src + (src.includes('?') ? '&' : '?') + '_d=' + Date.now();
+    });
+  } catch(e2) { console.warn('[photo] direct:', e2.message); }
+
+  // Stratégie 3 : raw.githubusercontent.com si URL github.io (double tentative)
+  const raw = _toRawUrl(src);
+  if (raw !== src) {
+    try {
+      return await new Promise((res, rej) => {
+        const el = new Image();
+        el.crossOrigin = 'anonymous';
+        el.onload  = () => { if (el.naturalWidth) res(el); else rej(); };
+        el.onerror = rej;
+        el.src = raw + '?_r=' + Date.now();
+      });
+    } catch(e3) { console.warn('[photo] raw fallback:', e3.message || e3); }
+  }
+
+  return null;
+}
+
+function _rrPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y,     x + w, y + r,     r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x,     y + h, x,       y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x,     y,     x + r,   y,          r);
+  ctx.closePath();
+}
+
+function _makeCanvas(w,h,sc){
+  const canvas=document.createElement('canvas');
+  canvas.width=w*sc; canvas.height=h*sc;
+  const ctx=canvas.getContext('2d'); ctx.scale(sc,sc);
+  _rrPath(ctx,0,0,w,h,22); ctx.clip();
+  return {canvas,ctx};
+}
+function _cercle(ctx,x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);}
+function _truncate(ctx,txt,maxW){
+  if(ctx.measureText(txt).width<=maxW)return txt;
+  let t=txt;
+  while(ctx.measureText(t+'…').width>maxW&&t.length)t=t.slice(0,-1);
+  return t+'…';
+}
+function _wrapText(ctx,text,maxW,maxLines){
+  const words=text.split(' ');
+  const lines=[];
+  let cur='';
+  for(const word of words){
+    const test=cur?cur+' '+word:word;
+    if(ctx.measureText(test).width>maxW&&cur){
+      lines.push(cur);
+      if(lines.length>=maxLines)return lines;
+      cur=word;
+    }else{cur=test;}
+  }
+  if(cur&&lines.length<maxLines)lines.push(cur);
+  return lines;
+}
+function _dlCanvas(canvas,name){
+  const a=document.createElement('a');
+  a.download=name.toLowerCase().replace(/\s+/g,'_')+'.png';
+  a.href=canvas.toDataURL('image/png'); a.click();
+}
