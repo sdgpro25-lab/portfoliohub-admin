@@ -2840,22 +2840,28 @@
     const profil = c.profil || {};
     const initiales = ((c.prenom||'?')[0]+(c.nom||'?')[0]).toUpperCase();
 
-    // ── Palette exacte du template ──
+    // ── Palette exacte du template (vars réelles: --ink, --navy, --teal, --gold, --soft, --muted) ──
     const tpl = allTemplates.find(t => String(t.id) === String(c.template_id));
     const cssMap = {};
     (extraireSwatchesCss(tpl ? tpl.css_vars : '')).forEach(s => { cssMap[s.name] = s.value; });
 
-    // Couleurs sémantiques avec fallbacks robustes
+    // Mapping exact sur les noms de variables réels des templates PortfolioHub
     const COL = {
-      bg:      cssMap['bg']           || cssMap['background']    || '#f3f7fc',
-      surface: cssMap['surface']      || cssMap['card']          || '#ffffff',
-      text:    cssMap['text']         || cssMap['color']         || '#0f2d4a',
-      muted:   cssMap['muted']        || cssMap['text-secondary']|| '#6b829a',
-      primary: cssMap['primary']      || cssMap['primary-color'] || '#2176ae',
-      accent:  cssMap['accent']       || cssMap['secondary']     || cssMap['primary'] || '#0d9e8e',
-      border:  cssMap['border']       || cssMap['separator']     || 'rgba(0,0,0,0.1)',
-      gold:    cssMap['gold']         || cssMap['highlight']     || cssMap['accent']  || '#c89b3c',
+      bg:      cssMap['soft']      || '#f4f8fb',   // --soft  : fond clair du template
+      surface: cssMap['panel']     || '#ffffff',   // --panel : fond surfaces/cards
+      text:    cssMap['ink']       || '#102033',   // --ink   : texte principal
+      muted:   cssMap['muted']     || '#66778e',   // --muted : texte secondaire
+      primary: cssMap['navy']      || '#12476d',   // --navy  : couleur principale
+      accent:  cssMap['teal']      || '#0aa393',   // --teal  : couleur accent (nom trompeur, varie par template)
+      gold:    cssMap['gold']      || '#caa04a',   // --gold  : accent secondaire
+      cream:   cssMap['cream']     || '#fbf8f1',   // --cream : fond alternatif chaud
     };
+    // Police du template (Georgia pour Élégant, Inter/Arial pour les autres)
+    const tplFont = (() => {
+      const f = cssMap['font'] || '';
+      if (f.includes('Georgia')) return 'Georgia';
+      return 'Arial';
+    })();
 
     // Helpers couleur
     function hexToRgb(hex) {
@@ -2870,21 +2876,19 @@
     function luminance(hex) {
       try { const [r,g,b]=hexToRgb(hex); return (r*299+g*587+b*114)/1000; } catch { return 200; }
     }
-    // Éclaircit ou assombrit selon luminosité du bg
-    const bgIsDark = luminance(COL.bg) < 128;
 
-    // Sur fond clair → texte sombre. Sur fond sombre → texte clair.
-    const onBg      = bgIsDark ? '#ffffff'    : COL.text;
-    const onBgMuted = bgIsDark ? 'rgba(255,255,255,0.6)' : withAlpha(COL.muted, 0.85);
-    // Couleur accent pour pill text : contraster avec le fond de la pill
+    // --soft est toujours clair dans les 3 templates → texte toujours COL.text
+    // Mais on garde la logique au cas où un futur template est sombre
+    const bgIsDark  = luminance(COL.bg) < 128;
+    const onBg      = bgIsDark ? '#ffffff' : COL.text;
+    const onBgMuted = bgIsDark ? 'rgba(255,255,255,0.6)' : withAlpha(COL.muted, 0.9);
+
     const pillBg    = withAlpha(COL.accent, 0.12);
-    const pillStroke= withAlpha(COL.accent, 0.5);
-    const pillText  = luminance(COL.accent) < 128 ? COL.accent : COL.primary;
-    // Couleur anneau cercle
-    const ringColor = withAlpha(COL.primary, 0.3);
-    // Fond rows contact
-    const rowBg     = bgIsDark ? 'rgba(255,255,255,0.06)' : withAlpha(COL.primary, 0.05);
-    const rowStroke = withAlpha(COL.primary, 0.14);
+    const pillStroke= withAlpha(COL.accent, 0.45);
+    const pillText  = COL.primary;
+    const ringColor = withAlpha(COL.primary, 0.25);
+    const rowBg     = withAlpha(COL.primary, 0.05);
+    const rowStroke = withAlpha(COL.primary, 0.12);
 
     // ── Données dynamiques ──
     let desc = ((profil.hero||{}).lead || (profil.apropos||{}).intro || '').trim();
@@ -2940,18 +2944,18 @@
     } else {
       // Initiales dans le cercle — blanc si cercle sombre, sinon surface
       const initCol = luminance(COL.primary) < 160 ? '#ffffff' : COL.text;
-      v.fillStyle = initCol; v.font = `bold ${Math.round(lr*0.60)}px Arial`;
+      v.fillStyle = initCol; v.font = `bold ${Math.round(lr*0.60)}px ${tplFont}`;
       v.textAlign = 'center'; v.textBaseline = 'middle';
       v.fillText(initiales, lx, ly); v.textBaseline = 'alphabetic';
     }
 
     // ── Nom ──
     const nomComplet = ((c.prenom||'')+' '+(c.nom||'')).trim().toUpperCase();
-    v.fillStyle = onBg; v.font = 'bold 20px Arial'; v.textAlign = 'center';
+    v.fillStyle = onBg; v.font = `bold 20px ${tplFont}`; v.textAlign = 'center';
     v.fillText(_truncate(v, nomComplet, W-60), W/2, ly+lr+36);
 
     // ── Profession (couleur accent) ──
-    v.fillStyle = COL.accent; v.font = '12.5px Arial';
+    v.fillStyle = COL.accent; v.font = `12.5px ${tplFont}`;
     v.fillText(_truncate(v, c.profession||'', W-90), W/2, ly+lr+55);
 
     // ── Séparateur ──
@@ -2960,7 +2964,7 @@
 
     // ── Description ──
     let curY = ly+lr+90;
-    v.font = '11px Arial'; v.fillStyle = onBgMuted; v.textAlign = 'center';
+    v.font = `11px ${tplFont}`; v.fillStyle = onBgMuted; v.textAlign = 'center';
     const descLines = _wrapText(v, desc, W-80, 3);
     descLines.forEach(line => { v.fillText(line, W/2, curY); curY += 17; });
 
@@ -2968,7 +2972,7 @@
     if (specs.length > 0) {
       curY += 16;
       const pillH = 24, pillR = 12, hGap = 8;
-      v.font = 'bold 9.5px Arial';
+      v.font = `bold 9.5px ${tplFont}`;
       const availW = W - 44;
       const maxPW  = Math.floor((availW - hGap*(specs.length-1)) / specs.length);
       let sx = 22;
@@ -3004,9 +3008,9 @@
       _rrPath(v, W*0.07, curY, W*0.86, vrH, 10); v.fill();
       v.strokeStyle = rowStroke; v.lineWidth = 0.8;
       _rrPath(v, W*0.07, curY, W*0.86, vrH, 10); v.stroke();
-      v.fillStyle = COL.accent; v.font = 'bold 13px Arial'; v.textAlign = 'left';
+      v.fillStyle = COL.accent; v.font = `bold 13px ${tplFont}`; v.textAlign = 'left';
       v.fillText(ic, W*0.12, curY+vrH/2+5);
-      v.fillStyle = onBg; v.font = '11.5px Arial';
+      v.fillStyle = onBg; v.font = `11.5px ${tplFont}`;
       v.fillText(_truncate(v, val, W*0.59), W*0.20, curY+vrH/2+5);
       curY += vrH+vrG;
     });
