@@ -88,18 +88,35 @@ function _toRawUrl(url) {
   return url;
 }
 
+// Extrait le chemin /photos/xxx.jpg et construit une URL same-origin
+// → même domaine que l'admin = zéro CORS, jamais de canvas taint
+function _toSameOriginUrl(url) {
+  if (!url || typeof window === 'undefined') return null;
+  const m = url.match(/\/photos\/([^?#]+)/);
+  if (!m) return null;
+  return window.location.origin + '/photos/' + m[1];
+}
+
 async function _loadImg(src) {
   const clean = (src || '').trim();
   if (!clean) return null;
-  const raw  = _toRawUrl(clean);
-  // Raw URL en premier — Access-Control-Allow-Origin: * garanti
-  const urls = raw !== clean ? [raw, clean] : [clean];
 
-  // ── Méthode PRIMAIRE : fetch → blob → dataURL (100% CORS-safe sur canvas) ──
+  // Construire la liste d'URLs à essayer, par ordre de fiabilité :
+  // 1. Same-origin (admin.sotchedji.store/photos/...) → zéro CORS, priorité absolue
+  // 2. raw.githubusercontent.com → CORS garanti (Access-Control-Allow-Origin: *)
+  // 3. URL originale → dernier recours
+  const urls = [];
+  const same = _toSameOriginUrl(clean);
+  if (same) urls.push(same);
+  const raw = _toRawUrl(clean);
+  if (raw !== clean && !urls.includes(raw)) urls.push(raw);
+  if (!urls.includes(clean)) urls.push(clean);
+
+  // fetch → blob → dataURL : seule méthode qui garantit aucun taint canvas
   for (const url of urls) {
     try {
-      const resp = await fetch(url, { mode: 'cors', cache: 'no-store', credentials: 'omit' });
-      if (!resp.ok) { console.warn('[photo] fetch status', resp.status, url); continue; }
+      const resp = await fetch(url, { cache: 'no-store' });
+      if (!resp.ok) { console.warn('[photo] fetch', resp.status, url); continue; }
       const blob = await resp.blob();
       if (!blob.size) continue;
       const dataUrl = await new Promise((res, rej) => {
@@ -111,27 +128,12 @@ async function _loadImg(src) {
         el.onload  = () => el.naturalWidth > 0 ? res(el) : rej(new Error('w=0'));
         el.onerror = rej; el.src = dataUrl;
       });
-      console.log('[photo] ✅ fetch+dataURL OK:', url);
+      console.log('[photo] ✅', url);
       return img;
-    } catch(e) { console.warn('[photo] fetch ❌', url, e.message); }
+    } catch(e) { console.warn('[photo] ❌', url, e.message); }
   }
 
-  // ── Méthode FALLBACK : crossOrigin='anonymous' sans cache buster ──
-  for (const url of urls) {
-    try {
-      const img = await new Promise((res, rej) => {
-        const el = new Image();
-        el.crossOrigin = 'anonymous';
-        el.onload  = () => el.naturalWidth > 0 ? res(el) : rej(new Error('w=0'));
-        el.onerror = () => rej(new Error('onerror'));
-        el.src = url;
-      });
-      console.log('[photo] ✅ crossOrigin OK:', url);
-      return img;
-    } catch(e) { console.warn('[photo] crossOrigin ❌', url, e.message); }
-  }
-
-  console.error('[photo] ÉCHEC TOTAL pour:', src);
+  console.error('[photo] ÉCHEC pour:', src);
   return null;
 }
 
