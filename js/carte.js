@@ -156,9 +156,10 @@ async function exporterCarteClient(id) {
   p.fillStyle = onBg; p.font = `bold 19px ${tplFont}`; p.textAlign = 'center';
   p.fillText(_truncate(p, nomComplet, PW-40), PW/2, ly+lr+34);
 
-  // Profession — wrap sur 2 lignes, jamais tronqué
+  // Profession portrait — visible sur fond clair (bg)
   const profLinesP = _wrapText(p, c.profession||'', PW-80, 2);
-  const profColP   = luminance(COL.accent) > 90 ? COL.accent : withAlpha(COL.primary, 0.75);
+  // Sur fond clair : accent si lisible, sinon primary
+  const profColP   = luminance(COL.accent) > 60 ? COL.accent : COL.primary;
   p.fillStyle = profColP; p.font = `11px ${tplFont}`; p.textAlign = 'center';
   profLinesP.forEach((line, i) => p.fillText(line, PW/2, ly+lr+54 + i*14));
   const afterProf = ly+lr+54 + profLinesP.length*14;
@@ -280,8 +281,13 @@ async function exporterCarteClient(id) {
   lv.fillText(_truncate(lv, nomComplet, LP-18), lax, lay+lar+24);
 
   // Profession — wrap 2 lignes max, jamais tronqué avec "..."
-  const profLinesLv = _wrapText(lv, c.profession||'', LP-28, 2);
-  const profColLv = luminance(COL.accent) > 90 ? withAlpha(COL.accent, 0.95) : 'rgba(255,255,255,0.78)';
+  // Contraste : si accent trop proche du fond sombre → blanc
+  const profLinesLv  = _wrapText(lv, c.profession||'', LP-28, 2);
+  const panelBgLum   = luminance(panelDark);
+  const accentLum    = luminance(COL.accent);
+  const profColLv    = (accentLum - panelBgLum) > 45
+    ? withAlpha(COL.accent, 0.95)   // contraste suffisant → couleur accent
+    : 'rgba(255,255,255,0.85)';     // contraste faible (ex: Moderne indigo) → blanc
   lv.fillStyle = profColLv; lv.font = `9px ${tplFont}`; lv.textAlign = 'center';
   profLinesLv.forEach((line, i) => lv.fillText(line, lax, lay+lar+38 + i*12));
   const afterProfLv = lay+lar+38 + profLinesLv.length*12;
