@@ -284,6 +284,18 @@
     .btn-maj:disabled{opacity:.6;cursor:not-allowed}
     .btn-act.carte{background:#f5f0fc;color:#6d3eaa;border:1px solid #d4c3ef}.btn-act.carte:hover{background:#ead9fc}
 
+    /* ═══ PHOTO UPLOAD ═══ */
+    .photo-upload-wrap{display:flex;align-items:center;gap:18px;padding:16px;border:1.5px dashed var(--border);border-radius:14px;background:#fafcff;transition:var(--t)}
+    .photo-upload-wrap:hover{border-color:var(--teal);background:var(--teal-lt)}
+    .photo-circle-preview{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;overflow:hidden;box-shadow:0 4px 14px rgba(13,158,142,.28);position:relative;cursor:pointer}
+    .photo-circle-preview img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+    .photo-upload-right{flex:1;display:flex;flex-direction:column;gap:8px}
+    .photo-upload-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--navy);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--t)}
+    .photo-upload-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-lt)}
+    .photo-upload-hint{font-size:.73rem;color:var(--muted);line-height:1.5}
+    .photo-name-tag{font-size:.75rem;font-weight:700;color:var(--teal);background:var(--teal-lt);padding:3px 10px;border-radius:20px;display:none;align-items:center;gap:5px}
+    .photo-name-tag.show{display:inline-flex}
+
     /* LOGOUT btn */
     .btn-logout{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border:1.5px solid rgba(255,255,255,.12);border-radius:8px;background:transparent;color:rgba(255,255,255,.6);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:var(--t)}
     .btn-logout:hover{background:rgba(224,82,96,.15);border-color:rgba(224,82,96,.4);color:#f8a3ab}
@@ -542,7 +554,22 @@
               <div class="form-group"><label>Email</label><div class="input-wrap"><span class="input-icon">📧</span><input id="f_email" type="email" placeholder="vincent@email.com"></div></div>
               <div class="form-group"><label>Téléphone</label><div class="input-wrap"><span class="input-icon">📞</span><input id="f_tel" placeholder="+229 01 23 45 67"></div></div>
               <div class="form-group full"><label>Profession / Titre principal *</label><div class="input-wrap"><span class="input-icon">💼</span><input id="f_profession" placeholder="Ex: Architecte · Entrepreneur · Développeur web"></div></div>
-              <div class="form-group full"><label>URL de la photo de profil</label><div class="input-wrap"><span class="input-icon">🖼️</span><input id="f_photo" placeholder="https://... (laisser vide pour avatar automatique)"></div></div>
+              <div class="form-group full">
+                <label>Photo de profil</label>
+                <div class="photo-upload-wrap">
+                  <div class="photo-circle-preview" id="photoCircle" onclick="document.getElementById('f_photo_file').click()" title="Cliquer pour choisir une photo">
+                    <span id="photoPlaceholder">📷</span>
+                    <img id="photoImgPreview" src="" alt="" style="display:none">
+                  </div>
+                  <div class="photo-upload-right">
+                    <input type="file" id="f_photo_file" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+                    <button type="button" class="photo-upload-btn" onclick="document.getElementById('f_photo_file').click()">📁 Choisir une photo</button>
+                    <div class="photo-name-tag" id="photoNameTag"><span id="photoFileName"></span> <span style="cursor:pointer;opacity:.6" onclick="clearPhoto()">✕</span></div>
+                    <div class="photo-upload-hint">JPG / PNG / WebP · La photo sera uploadée sur GitHub lors de l'enregistrement<br>Ou colle une URL directe ci-dessous</div>
+                    <input id="f_photo" class="ni" placeholder="https://... (URL directe optionnelle)" style="font-size:.78rem;padding:7px 10px" oninput="syncPhotoUrl(this.value)">
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1039,6 +1066,7 @@
   let allClients = [], allTemplates = [];
   let selectedClientId = null, selectedTemplateId = null;
   let ongletActif = 0;
+  let _photoBase64 = null; // base64 de la photo sélectionnée
 
   // ── Clock ──
   function tick() {
@@ -1250,6 +1278,41 @@
     }).join('');
   }
 
+  // ── Photo upload helpers ──
+  function previewPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      _photoBase64 = e.target.result; // data:image/...;base64,...
+      _setPhotoPreview(_photoBase64);
+      document.getElementById('f_photo').value = '';
+      document.getElementById('photoFileName').textContent = file.name;
+      document.getElementById('photoNameTag').classList.add('show');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function _setPhotoPreview(src) {
+    const img = document.getElementById('photoImgPreview');
+    const ph  = document.getElementById('photoPlaceholder');
+    if (src) { img.src = src; img.style.display = 'block'; ph.style.display = 'none'; }
+    else     { img.src = ''; img.style.display = 'none';  ph.style.display = 'block'; }
+  }
+
+  function clearPhoto() {
+    _photoBase64 = null;
+    _setPhotoPreview(null);
+    document.getElementById('f_photo_file').value = '';
+    document.getElementById('f_photo').value = '';
+    document.getElementById('photoNameTag').classList.remove('show');
+  }
+
+  function syncPhotoUrl(url) {
+    if (url) { _photoBase64 = null; _setPhotoPreview(url); document.getElementById('photoNameTag').classList.remove('show'); }
+    else if (!_photoBase64) _setPhotoPreview(null);
+  }
+
   // ── Lire le formulaire ──
   function lireFormulaire() {
     const competences = [...document.querySelectorAll('.comp-item')].map(el => ({
@@ -1283,9 +1346,10 @@
     })).filter(c => c.titre);
 
     return {
-      id:         g('f_id') || undefined,
-      prenom:     g('f_prenom'), nom: g('f_nom'), email: g('f_email'),
-      telephone:  g('f_tel'), profession: g('f_profession'), photo_url: g('f_photo'),
+      id:           g('f_id') || undefined,
+      prenom:       g('f_prenom'), nom: g('f_nom'), email: g('f_email'),
+      telephone:    g('f_tel'), profession: g('f_profession'), photo_url: g('f_photo'),
+      photo_base64: _photoBase64 || undefined,
       template_id: g('f_template'), domaine: g('f_domaine'), abonnement: g('f_abonnement'), duree_mois: g('f_duree') || '12',
       profil: {
         hero: {
@@ -1592,6 +1656,8 @@
     });
     // Remettre tous les toggles à ON
     document.querySelectorAll('[id^="vis_"]').forEach(el => el.checked = true);
+    // Réinitialiser la photo
+    clearPhoto();
     // Réinitialiser le titre du formulaire
     const titleEl = document.getElementById('formCardTitle');
     if (titleEl) titleEl.textContent = '👤 Identité du client';
@@ -1948,6 +2014,9 @@
     sv('f_email',      d.email);
     sv('f_tel',        d.telephone);
     sv('f_profession', d.profession);
+    _photoBase64 = null;
+    if (d.photo_url) { _setPhotoPreview(d.photo_url); document.getElementById('photoNameTag').classList.remove('show'); }
+    else clearPhoto();
     sv('f_photo',      d.photo_url);
     sv('f_domaine',    d.domaine);
     sv('f_abonnement', d.abonnement);
@@ -2765,152 +2834,203 @@
   async function exporterCarteClient(id) {
     const c = allClients.find(x => x.id === id);
     if (!c) return;
-    toast('Génération de la carte...', 'info', '🪪');
+    toast('Génération recto + verso...', 'info', '🪪');
 
-    const W = 420, H = 640, SCALE = 2;
-    const canvas = document.createElement('canvas');
-    canvas.width  = W * SCALE;
-    canvas.height = H * SCALE;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(SCALE, SCALE);
+    const W = 420, H = 650, SC = 2;
+    const initiales = ((c.prenom||'?')[0]+(c.nom||'?')[0]).toUpperCase();
 
-    // ── Clip card shape ──
-    _rrPath(ctx, 0, 0, W, H, 20);
-    ctx.clip();
-
-    // ── Background teal gradient ──
-    const bg = ctx.createLinearGradient(0, 0, W * 0.4, H);
-    bg.addColorStop(0, '#0a9d8e');
-    bg.addColorStop(1, '#054f47');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-
-    // ── Decorative circles (top right) ──
-    ctx.globalAlpha = 0.10;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(W - 40, -30, 100, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W + 20, 60, 80, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // ── White top panel ──
-    const splitY = 310;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(W, 0);
-    ctx.lineTo(W, splitY - 40);
-    ctx.bezierCurveTo(W, splitY + 8, W * 0.65, splitY + 38, W / 2, splitY + 28);
-    ctx.bezierCurveTo(W * 0.35, splitY + 38, 0, splitY + 8, 0, splitY - 40);
-    ctx.closePath();
-    ctx.fill();
-
-    // ── Teal arch at very top ──
-    ctx.fillStyle = '#0d9e8e';
-    ctx.beginPath();
-    ctx.arc(W / 2, -8, 98, 0, Math.PI);
-    ctx.fill();
-
-    // ── Photo ──
-    const px = W / 2, py = 148, pr = 58;
-
-    // White ring
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(px, py, pr + 8, 0, Math.PI * 2); ctx.fill();
-    // Teal thin ring
-    ctx.strokeStyle = '#0d9e8e'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(px, py, pr + 5, 0, Math.PI * 2); ctx.stroke();
-
-    // Clip & draw photo
-    ctx.save();
-    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.clip();
-
-    const initiales = ((c.prenom || '?')[0] + (c.nom || '?')[0]).toUpperCase();
-    let drawn = false;
+    // ── Charger la photo ──
+    let photoImg = null;
     if (c.photo_url) {
-      try {
-        const img = await Promise.race([_loadImg(c.photo_url), new Promise((_,r)=>setTimeout(r,5000))]);
-        ctx.drawImage(img, px - pr, py - pr, pr * 2, pr * 2);
-        drawn = true;
-      } catch {}
+      try { photoImg = await Promise.race([_loadImg(c.photo_url), new Promise((_,r)=>setTimeout(r,6000))]); } catch {}
     }
-    if (!drawn) {
-      const ig = ctx.createLinearGradient(px-pr, py-pr, px+pr, py+pr);
-      ig.addColorStop(0, '#2176ae'); ig.addColorStop(1, '#0d9e8e');
-      ctx.fillStyle = ig; ctx.fillRect(px-pr, py-pr, pr*2, pr*2);
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${Math.round(pr * 0.72)}px Arial, sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(initiales, px, py);
-    }
-    ctx.restore();
 
-    // ── Name ──
-    ctx.fillStyle = '#0f2d4a';
-    ctx.font = 'bold 19px Arial, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillText(((c.prenom||'')+' '+(c.nom||'')).toUpperCase(), W/2, py + pr + 32);
+    // ══ RECTO ══
+    const cr = _makeCanvas(W, H, SC);
+    const r  = cr.ctx;
+
+    // Fond teal dégradé
+    let bg = r.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#0d9e8e'); bg.addColorStop(1, '#054f47');
+    r.fillStyle = bg; r.fillRect(0, 0, W, H);
+
+    // Cercles déco fond
+    r.save(); r.globalAlpha = 0.08;
+    r.fillStyle = '#fff';
+    _cercle(r, W+30, -40, 160); r.fill();
+    _cercle(r, -30, H*0.3, 120); r.fill();
+    r.restore();
+
+    // Panel blanc haut (zone photo + nom)
+    const splitY = 340;
+    r.fillStyle = '#fff';
+    r.beginPath();
+    r.moveTo(0, 0); r.lineTo(W, 0); r.lineTo(W, splitY - 50);
+    r.bezierCurveTo(W, splitY+10, W*0.62, splitY+44, W/2, splitY+34);
+    r.bezierCurveTo(W*0.38, splitY+44, 0, splitY+10, 0, splitY-50);
+    r.closePath(); r.fill();
+
+    // Arche teal en haut
+    r.fillStyle = '#0d9e8e';
+    r.beginPath(); r.arc(W/2, -12, 110, 0, Math.PI); r.fill();
+
+    // Logo PortfolioHub dans l'arche
+    r.fillStyle = 'rgba(255,255,255,0.9)';
+    r.font = 'bold 11px Arial'; r.textAlign = 'center';
+    r.fillText('PORTFOLIOHUB', W/2, 28);
+
+    // ── Photo cercle ──
+    const px = W/2, py = 158, pr = 62;
+    // Ombre
+    r.save(); r.shadowColor = 'rgba(13,158,142,0.4)'; r.shadowBlur = 20;
+    r.fillStyle = '#fff'; _cercle(r, px, py, pr+9); r.fill(); r.restore();
+    // Bague teal
+    r.strokeStyle = '#0d9e8e'; r.lineWidth = 3.5;
+    _cercle(r, px, py, pr+6); r.stroke();
+
+    r.save(); _cercle(r, px, py, pr); r.clip();
+    if (photoImg) {
+      r.drawImage(photoImg, px-pr, py-pr, pr*2, pr*2);
+    } else {
+      const ig = r.createLinearGradient(px-pr, py-pr, px+pr, py+pr);
+      ig.addColorStop(0,'#2176ae'); ig.addColorStop(1,'#0d9e8e');
+      r.fillStyle = ig; r.fillRect(px-pr, py-pr, pr*2, pr*2);
+      r.fillStyle = '#fff'; r.font = `bold ${Math.round(pr*0.7)}px Arial`;
+      r.textAlign = 'center'; r.textBaseline = 'middle';
+      r.fillText(initiales, px, py); r.textBaseline = 'alphabetic';
+    }
+    r.restore();
+
+    // ── Nom ──
+    r.fillStyle = '#0f2d4a';
+    r.font = 'bold 20px Arial'; r.textAlign = 'center';
+    r.fillText((c.prenom+' '+c.nom).toUpperCase(), W/2, py+pr+34);
 
     // ── Profession ──
-    ctx.fillStyle = '#4a6680';
-    ctx.font = '13px Arial, sans-serif';
-    let prof = c.profession || '';
-    if (ctx.measureText(prof).width > W - 80) {
-      while (ctx.measureText(prof+'…').width > W - 80 && prof.length) prof = prof.slice(0,-1);
-      prof += '…';
-    }
-    ctx.fillText(prof, W/2, py + pr + 52);
+    r.fillStyle = '#3a5a78'; r.font = '13px Arial';
+    const profTxt = _truncate(r, c.profession||'', W-100);
+    r.fillText(profTxt, W/2, py+pr+56);
 
-    // ── Divider ──
-    ctx.strokeStyle = 'rgba(13,158,142,0.3)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(W*0.12, py+pr+68); ctx.lineTo(W*0.88, py+pr+68); ctx.stroke();
+    // ── Séparateur ──
+    r.strokeStyle = 'rgba(13,158,142,0.25)'; r.lineWidth = 1;
+    r.beginPath(); r.moveTo(W*0.15, py+pr+72); r.lineTo(W*0.85, py+pr+72); r.stroke();
 
-    // ── Info rows (teal zone) ──
-    const infoStart = py + pr + 92;
-    const rows = [
-      { type: 'Email',     val: c.email     || '—' },
-      { type: 'Tél',       val: c.telephone || '—' },
-      { type: 'Site',      val: c.sous_domaine ? 'https://'+c.sous_domaine : '—' },
-      { type: 'Statut',    val: c.statut === 'en_ligne' ? 'En ligne ✓' : c.statut === 'brouillon' ? 'Brouillon' : 'En attente' },
+    // ── Lignes info (fond teal) ──
+    const infoY = py+pr+92, rH = 42, rG = 8;
+    const infoRows = [
+      {label:'Email',  val: c.email||'—'},
+      {label:'Tél',    val: c.telephone||'—'},
+      {label:'Site',   val: c.sous_domaine?'https://'+c.sous_domaine:'—'},
+      {label:'Statut', val: c.statut==='en_ligne'?'En ligne ✓':c.statut==='brouillon'?'Brouillon':'En attente'},
     ];
-    const rH = 38, rG = 9;
-    rows.forEach(({ type, val }, i) => {
-      const ry = infoStart + i * (rH + rG);
-      // Row bg
-      ctx.fillStyle = 'rgba(255,255,255,0.11)';
-      _rrPath(ctx, W*0.07, ry, W*0.86, rH, 8); ctx.fill();
-      // Type label
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.font = 'bold 10px Arial, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(type.toUpperCase(), W*0.13, ry + 14);
-      // Value
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '12px Arial, sans-serif';
-      let v = val;
-      if (ctx.measureText(v).width > W*0.58) {
-        while (ctx.measureText(v+'…').width > W*0.58 && v.length) v = v.slice(0,-1);
-        v += '…';
-      }
-      ctx.fillText(v, W*0.13, ry + 28);
+    infoRows.forEach(({label,val},i) => {
+      const ry = infoY + i*(rH+rG);
+      r.fillStyle = 'rgba(255,255,255,0.13)';
+      _rrPath(r, W*0.06, ry, W*0.88, rH, 9); r.fill();
+      // Barre colorée gauche
+      r.fillStyle = 'rgba(255,255,255,0.5)';
+      _rrPath(r, W*0.06, ry, 4, rH, 2); r.fill();
+      // Label
+      r.fillStyle = 'rgba(255,255,255,0.55)';
+      r.font = 'bold 9px Arial'; r.textAlign = 'left';
+      r.fillText(label.toUpperCase(), W*0.115, ry+16);
+      // Valeur
+      r.fillStyle = '#fff'; r.font = '12.5px Arial';
+      r.fillText(_truncate(r, val, W*0.7), W*0.115, ry+32);
     });
 
-    // ── Bottom branding ──
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.fillRect(0, H - 46, W, 46);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = 'bold 12px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('✦  PORTFOLIOHUB', W/2, H - 24);
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = '10px Arial, sans-serif';
-    ctx.fillText('sotchedji.store', W/2, H - 10);
+    // ── Barre bas ──
+    r.fillStyle = 'rgba(0,0,0,0.25)'; r.fillRect(0, H-44, W, 44);
+    r.fillStyle = 'rgba(255,255,255,0.85)'; r.font = 'bold 11px Arial'; r.textAlign='center';
+    r.fillText('PORTFOLIOHUB · sotchedji.store', W/2, H-18);
 
-    // ── Download ──
-    const a = document.createElement('a');
-    a.download = `carte_${(c.prenom||'client')}_${(c.nom||'')}.png`.toLowerCase().replace(/\s+/g,'_');
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-    toast(`Carte de ${c.prenom} exportée !`, 'success', '🪪');
+    _dlCanvas(cr.canvas, `recto_${c.prenom}_${c.nom}`);
+
+    // ══ VERSO ══
+    const cv = _makeCanvas(W, H, SC);
+    const v  = cv.ctx;
+
+    // Fond marine
+    let bv = v.createLinearGradient(0, 0, W, H);
+    bv.addColorStop(0,'#0d1f38'); bv.addColorStop(1,'#0a2a22');
+    v.fillStyle = bv; v.fillRect(0,0,W,H);
+
+    // Cercles déco
+    v.save(); v.globalAlpha = 0.06; v.fillStyle='#0d9e8e';
+    _cercle(v,-40,H*0.2,180); v.fill();
+    _cercle(v,W+40,H*0.75,160); v.fill();
+    v.restore();
+
+    // Ligne déco haut
+    v.strokeStyle='rgba(13,158,142,0.4)'; v.lineWidth=1;
+    v.beginPath(); v.moveTo(W*0.1,60); v.lineTo(W*0.9,60); v.stroke();
+
+    // Logo cercle
+    const lx=W/2, ly=H*0.32, lr=72;
+    let lgrd = v.createLinearGradient(lx-lr,ly-lr,lx+lr,ly+lr);
+    lgrd.addColorStop(0,'#0d9e8e'); lgrd.addColorStop(1,'#2176ae');
+    v.fillStyle=lgrd; _cercle(v,lx,ly,lr); v.fill();
+    v.fillStyle='rgba(255,255,255,0.12)'; _cercle(v,lx,ly,lr-8); v.fill();
+    v.fillStyle='#fff'; v.font='bold 30px Arial'; v.textAlign='center'; v.textBaseline='middle';
+    v.fillText('PH',lx,ly); v.textBaseline='alphabetic';
+
+    // Titre
+    v.fillStyle='rgba(255,255,255,0.9)'; v.font='bold 22px Arial'; v.textAlign='center';
+    v.fillText('PortfolioHub', W/2, ly+lr+38);
+    v.fillStyle='rgba(13,158,142,0.8)'; v.font='11px Arial';
+    v.fillText('Portfolios professionnels personnalisés', W/2, ly+lr+58);
+
+    // Séparateur
+    v.strokeStyle='rgba(13,158,142,0.3)'; v.lineWidth=1;
+    v.beginPath(); v.moveTo(W*0.2,ly+lr+74); v.lineTo(W*0.8,ly+lr+74); v.stroke();
+
+    // Infos contact verso
+    const vRows=[
+      {ic:'✉', val:c.email||'—'},
+      {ic:'✆', val:c.telephone||'—'},
+      {ic:'⊕', val:c.sous_domaine?'https://'+c.sous_domaine:'sotchedji.store'},
+    ];
+    const vyStart = ly+lr+96, vrH=40, vrG=8;
+    vRows.forEach(({ic,val},i)=>{
+      const ry=vyStart+i*(vrH+vrG);
+      v.fillStyle='rgba(255,255,255,0.07)';
+      _rrPath(v,W*0.08,ry,W*0.84,vrH,8); v.fill();
+      v.fillStyle='rgba(13,158,142,0.8)'; v.font='bold 14px Arial'; v.textAlign='left';
+      v.fillText(ic, W*0.13, ry+vrH/2+5);
+      v.fillStyle='rgba(255,255,255,0.8)'; v.font='12px Arial';
+      v.fillText(_truncate(v,val,W*0.6), W*0.21, ry+vrH/2+5);
+    });
+
+    // Bas verso
+    v.strokeStyle='rgba(13,158,142,0.3)'; v.lineWidth=1;
+    v.beginPath(); v.moveTo(W*0.1,H-55); v.lineTo(W*0.9,H-55); v.stroke();
+    v.fillStyle='rgba(255,255,255,0.3)'; v.font='10px Arial'; v.textAlign='center';
+    v.fillText('Généré par PortfolioHub · sdgpro25-lab', W/2, H-30);
+    v.fillStyle='rgba(13,158,142,0.6)'; v.font='bold 9px Arial';
+    v.fillText('sotchedji.store', W/2, H-14);
+
+    setTimeout(()=>{ _dlCanvas(cv.canvas, `verso_${c.prenom}_${c.nom}`); }, 400);
+    toast(`Carte ${c.prenom} — recto + verso téléchargés !`, 'success', '🪪');
+  }
+
+  function _makeCanvas(w,h,sc){
+    const canvas=document.createElement('canvas');
+    canvas.width=w*sc; canvas.height=h*sc;
+    const ctx=canvas.getContext('2d'); ctx.scale(sc,sc);
+    _rrPath(ctx,0,0,w,h,18); ctx.clip();
+    return {canvas,ctx};
+  }
+  function _cercle(ctx,x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);}
+  function _truncate(ctx,txt,maxW){
+    if(ctx.measureText(txt).width<=maxW)return txt;
+    let t=txt;
+    while(ctx.measureText(t+'…').width>maxW&&t.length)t=t.slice(0,-1);
+    return t+'…';
+  }
+  function _dlCanvas(canvas,name){
+    const a=document.createElement('a');
+    a.download=name.toLowerCase().replace(/\s+/g,'_')+'.png';
+    a.href=canvas.toDataURL('image/png'); a.click();
   }
 
   // ── Init ──
@@ -2924,6 +3044,7 @@
     ouvrirImport, fermerImport, switchImportTab, copierTemplate, afficherTemplate,
     importerJSON, chargerXLSX, telechargerTemplateExcel, exporterClientExcel,
     onFileChosen, doLogin, doSetup, logout, exporterCarteClient, mettreEnBrouillon,
+    previewPhoto, clearPhoto, syncPhotoUrl,
     chargerUtilisateurs, ouvrirModalUtilisateur, fermerModalUtilisateur,
     soumettreUtilisateur, supprimerUtilisateurUI
   });
