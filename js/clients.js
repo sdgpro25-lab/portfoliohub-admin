@@ -592,14 +592,29 @@ function fermerModalStatut() {
 }
 
 // ── Slug ──
+function _updatePortfolioLink(slug, domaine) {
+  const wrap = document.getElementById('portfolioLinkWrap');
+  const link = document.getElementById('portfolioLinkPreview');
+  if (!wrap || !link) return;
+  if (slug) {
+    const url = 'https://' + slug + '.' + (domaine || 'sotchedji.store');
+    link.href = url;
+    link.textContent = url;
+    wrap.style.display = 'flex';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
 function checkSlugDispo() {
   const input = document.getElementById('f_slug');
   const statusEl = document.getElementById('slugStatus');
   if (!input || !statusEl) return;
   const raw = input.value.trim();
   const slug = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9-]/g,'');
-  if (!slug) { statusEl.innerHTML = ''; return; }
   const domaine = document.getElementById('f_domaine')?.value || 'sotchedji.store';
+  _updatePortfolioLink(slug, domaine);
+  if (!slug) { statusEl.innerHTML = ''; return; }
   const fullDomain = slug + '.' + domaine;
   const currentId  = document.getElementById('f_id').value;
   const taken = allClients.some(c => c.sous_domaine === fullDomain && String(c.id) !== String(currentId));
