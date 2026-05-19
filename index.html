@@ -2917,9 +2917,18 @@
     const siteWeb    = c.sous_domaine ? 'https://'+c.sous_domaine : (c.domaine ? 'https://'+c.domaine : 'sotchedji.store');
 
     // ── Photo ──
+    // GitHub Pages redirige github.io → domaine custom en HTTP, bloqué depuis HTTPS.
+    // Solution : utiliser raw.githubusercontent.com qui sert directement sans redirection + CORS OK.
+    function toRawUrl(url) {
+      if (!url) return url;
+      const m = url.match(/https?:\/\/([^.]+)\.github\.io\/([^/?#]+)\/(.+)/);
+      if (m) return `https://raw.githubusercontent.com/${m[1]}/${m[2]}/main/${m[3]}`;
+      return url;
+    }
     let photoImg = null;
-    if (c.photo_url) {
-      try { photoImg = await Promise.race([_loadImg(c.photo_url), new Promise((_,r)=>setTimeout(r,6000))]); } catch {}
+    const photoSrc = toRawUrl(c.photo_url);
+    if (photoSrc) {
+      try { photoImg = await Promise.race([_loadImg(photoSrc), new Promise((_,r)=>setTimeout(r,8000))]); } catch {}
     }
 
     // Couleur sombre du panel gauche paysage
